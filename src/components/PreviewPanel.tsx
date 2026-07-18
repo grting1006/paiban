@@ -5,7 +5,6 @@ export function PreviewPanel() {
   return (
     <section className="preview-panel" aria-label="文档预览">
       <div className="preview-toolbar">
-        <div className="preview-tabs"><button className="is-active" disabled>页面</button><button disabled>大纲</button></div>
         <span className="preview-toolbar__spacer" />
         <div className="zoom-control">
           <button aria-label="缩小" title="缩小" disabled><Minus size={14} /></button>

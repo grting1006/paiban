@@ -1,4 +1,4 @@
-import { Bold, Heading1, Heading2, Italic, List, Quote, Sparkles } from 'lucide-react'
+import { Bold, Heading1, Heading2, Italic, List, Quote } from 'lucide-react'
 import { sampleDocument } from '../content/sampleDocument'
 
 const textTools = [
@@ -13,7 +13,6 @@ const textTools = [
 export function SourcePanel() {
   return (
     <section className="source-panel" aria-label="原始内容">
-      <div className="panel-heading"><span>原始内容</span><small>1,286 字</small></div>
       <div className="source-toolbar" aria-label="文本工具">
         {textTools.map(({ label, Icon }) => (
           <button key={label} aria-label={label} title={label} disabled><Icon size={15} /></button>
@@ -25,9 +24,7 @@ export function SourcePanel() {
         <h2>{sampleDocument.sectionTitle}</h2>
         <p>{sampleDocument.quote}</p>
       </article>
-      <div className="ai-suggestion">
-        <span className="ai-suggestion__icon"><Sparkles size={17} /></span>
-        <span className="ai-suggestion__copy"><strong>AI 排版建议</strong><small>识别结构并匹配版式</small></span>
+      <div className="ai-action">
         <button disabled>开始排版</button>
       </div>
     </section>
