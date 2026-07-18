@@ -3,4 +3,4 @@ dist/
 .superpowers/
 coverage/
 *.log
-
+*.tsbuildinfo
