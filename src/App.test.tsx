@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { render, screen, within } from '@testing-library/react'
 import { expect, test } from 'vitest'
 import App from './App'
@@ -19,4 +20,12 @@ test('keeps every displayed command non-functional', () => {
 
   expect(controls.length).toBeGreaterThan(8)
   controls.forEach((control) => expect(control).toBeDisabled())
+})
+
+test('locks the approved desktop-only three-column layout', () => {
+  const styles = readFileSync('src/styles/app.css', 'utf8')
+
+  expect(styles).toContain('grid-template-columns: minmax(300px, 31%) minmax(560px, 1fr) 250px')
+  expect(styles).toContain('min-width: 1180px')
+  expect(styles).not.toContain('@media')
 })
