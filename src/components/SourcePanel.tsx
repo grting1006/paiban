@@ -24,9 +24,6 @@ export function SourcePanel() {
         <h2>{sampleDocument.sectionTitle}</h2>
         <p>{sampleDocument.quote}</p>
       </article>
-      <div className="ai-action">
-        <button disabled>开始排版</button>
-      </div>
     </section>
   )
 }

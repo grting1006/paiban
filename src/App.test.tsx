@@ -25,7 +25,7 @@ test('keeps every displayed command non-functional', () => {
 test('locks the approved desktop-only three-column layout', () => {
   const styles = readFileSync('src/styles/app.css', 'utf8')
 
-  expect(styles).toContain('grid-template-columns: minmax(300px, 31%) minmax(560px, 1fr) 250px')
+  expect(styles).toContain('grid-template-columns: minmax(300px, 31%) minmax(560px, 1fr) 210px')
   expect(styles).toContain('min-width: 1180px')
   expect(styles).not.toContain('@media')
 })
