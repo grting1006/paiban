@@ -1,5 +1,4 @@
 import { Bold, Heading1, Heading2, Italic, List, Quote } from 'lucide-react'
-import { sampleSourceText } from '../content/sampleDocument'
 
 interface TextTool {
   label: string
@@ -21,7 +20,12 @@ function applyTextFormat(command: string, value?: string) {
   document.execCommand(command, false, value)
 }
 
-export function SourcePanel() {
+interface SourcePanelProps {
+  value: string
+  onChange: (value: string) => void
+}
+
+export function SourcePanel({ value, onChange }: SourcePanelProps) {
   return (
     <section className="source-panel" aria-label="原始内容">
       <div className="source-toolbar" aria-label="文本工具">
@@ -35,7 +39,16 @@ export function SourcePanel() {
           ><Icon size={15} /></button>
         ))}
       </div>
-      <article className="source-editor" contentEditable suppressContentEditableWarning spellCheck={false}>{sampleSourceText}</article>
+      <article
+        className="source-editor"
+        contentEditable
+        role="textbox"
+        aria-label="原始文本"
+        aria-multiline="true"
+        suppressContentEditableWarning
+        spellCheck={false}
+        onInput={(event) => onChange(event.currentTarget.innerText.replaceAll('\u00a0', ' '))}
+      >{value}</article>
     </section>
   )
 }

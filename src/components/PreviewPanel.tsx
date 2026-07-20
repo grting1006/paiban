@@ -1,10 +1,11 @@
 import type { CSSProperties } from 'react'
 import { Minus, Plus } from 'lucide-react'
-import { sampleDocument } from '../content/sampleDocument'
+import type { LayoutDocument } from '../document/types'
 import { DocumentRenderer } from './DocumentRenderer'
 import { fonts, type DocumentSettings, type LayoutPhase } from '../workbench'
 
 interface PreviewPanelProps {
+  document: LayoutDocument
   settings: DocumentSettings
   phase: LayoutPhase
   onZoomChange: (zoom: number) => void
@@ -19,7 +20,7 @@ type PaperStyle = CSSProperties & {
   '--zoom-progress': string
 }
 
-export function PreviewPanel({ settings, phase, onZoomChange }: PreviewPanelProps) {
+export function PreviewPanel({ document, settings, phase, onZoomChange }: PreviewPanelProps) {
   const font = fonts.find((item) => item.id === settings.font) ?? fonts[0]
   const style: PaperStyle = {
     '--accent': settings.accent,
@@ -43,7 +44,7 @@ export function PreviewPanel({ settings, phase, onZoomChange }: PreviewPanelProp
       </div>
       <div className="canvas">
         <article className={`paper paper--${settings.template}${phase === 'running' ? ' is-formatting' : ''}${phase === 'done' ? ' is-complete' : ''}`}>
-          <DocumentRenderer document={sampleDocument} />
+          <DocumentRenderer document={document} />
           <div className="paper__folio"><span>排版台</span><span>01</span></div>
         </article>
       </div>

@@ -3,6 +3,7 @@ import type { LayoutPhase } from '../workbench'
 
 interface AppHeaderProps {
   phase: LayoutPhase
+  canStartLayout: boolean
   canUndo: boolean
   canRedo: boolean
   onStartLayout: () => void
@@ -11,14 +12,14 @@ interface AppHeaderProps {
   onExport: () => void
 }
 
-export function AppHeader({ phase, canUndo, canRedo, onStartLayout, onUndo, onRedo, onExport }: AppHeaderProps) {
-  const layoutLabel = phase === 'running' ? '排版中' : phase === 'done' ? '已完成' : '开始排版'
+export function AppHeader({ phase, canStartLayout, canUndo, canRedo, onStartLayout, onUndo, onRedo, onExport }: AppHeaderProps) {
+  const layoutLabel = phase === 'running' ? '排版中' : phase === 'done' ? '已完成' : phase === 'error' ? '重试排版' : '开始排版'
 
   return (
     <header className="app-header">
       <div className="app-header__logo" aria-hidden="true">排</div>
       <strong className="app-header__product">排版台</strong>
-      <button className={`layout-button layout-button--${phase}`} onClick={onStartLayout} disabled={phase === 'running'}>
+      <button className={`layout-button layout-button--${phase}`} onClick={onStartLayout} disabled={phase === 'running' || !canStartLayout}>
         {phase === 'running' ? <LoaderCircle size={14} /> : phase === 'done' ? <Check size={14} /> : null}
         {layoutLabel}
       </button>

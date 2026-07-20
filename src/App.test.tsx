@@ -47,6 +47,22 @@ test('keeps every original character while presenting recognized formatting', ()
   }
 })
 
+test('sends the source to the layout service and renders the accepted document', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => sampleDocument,
+  })
+  vi.stubGlobal('fetch', fetch)
+  render(<App />)
+
+  fireEvent.click(screen.getByRole('button', { name: '开始排版' }))
+
+  expect(await screen.findByRole('button', { name: '已完成' })).toBeInTheDocument()
+  expect(fetch).toHaveBeenCalledOnce()
+  expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({ sourceText: sampleDocument.sourceText })
+  vi.unstubAllGlobals()
+})
+
 test('updates templates locally and sends export to browser print', () => {
   const print = vi.spyOn(window, 'print').mockImplementation(() => undefined)
   render(<App />)

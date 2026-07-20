@@ -1,6 +1,6 @@
 export type TemplateId = 'classic' | 'editorial' | 'minimal'
 export type FontId = 'source-serif' | 'source-sans' | 'kaiti' | 'fangsong' | 'georgia' | 'baskerville' | 'inter'
-export type LayoutPhase = 'idle' | 'running' | 'done'
+export type LayoutPhase = 'idle' | 'running' | 'done' | 'error'
 
 export interface DocumentSettings {
   template: TemplateId

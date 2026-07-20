@@ -59,6 +59,7 @@
 .layout-button:active { transform: translateY(0); }
 .layout-button--running svg { animation: spin 700ms linear infinite; }
 .layout-button--done { background: var(--teal); }
+.layout-button--error { background: #b94a3d; }
 
 .icon-button {
   width: 32px;

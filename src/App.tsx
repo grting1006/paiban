@@ -4,34 +4,55 @@ import { InspectorPanel } from './components/InspectorPanel'
 import { PreviewPanel } from './components/PreviewPanel'
 import { SourcePanel } from './components/SourcePanel'
 import { StatusBar } from './components/StatusBar'
+import { sampleDocument, sampleSourceText } from './content/sampleDocument'
 import { useHistoryState } from './hooks/useHistoryState'
+import { requestLayout } from './services/layoutApi'
 import { initialSettings, type DocumentSettings, type LayoutPhase } from './workbench'
 
 export default function App() {
   const { state: settings, setState: setSettings, undo, redo, canUndo, canRedo } = useHistoryState(initialSettings)
+  const [document, setDocument] = useState(sampleDocument)
+  const [sourceText, setSourceText] = useState(sampleSourceText)
   const [layoutPhase, setLayoutPhase] = useState<LayoutPhase>('idle')
   const timers = useRef<number[]>([])
+  const activeRequest = useRef<AbortController | null>(null)
 
-  useEffect(() => () => timers.current.forEach(window.clearTimeout), [])
+  useEffect(() => () => {
+    timers.current.forEach(window.clearTimeout)
+    activeRequest.current?.abort()
+  }, [])
 
   const updateSettings = useCallback((patch: Partial<DocumentSettings>) => {
     setSettings((current) => ({ ...current, ...patch }))
   }, [setSettings])
 
-  const startLayout = useCallback(() => {
-    if (layoutPhase === 'running') return
+  const startLayout = useCallback(async () => {
+    if (layoutPhase === 'running' || !sourceText.trim()) return
+    timers.current.forEach(window.clearTimeout)
+    timers.current = []
+    activeRequest.current?.abort()
+    const controller = new AbortController()
+    activeRequest.current = controller
     setLayoutPhase('running')
-    timers.current.push(window.setTimeout(() => {
-      updateSettings({ template: 'editorial', font: 'source-serif', fontSize: 10.5, lineHeight: 1.7 })
+
+    try {
+      const nextDocument = await requestLayout(sourceText, controller.signal)
+      if (controller.signal.aborted) return
+      setDocument(nextDocument)
       setLayoutPhase('done')
       timers.current.push(window.setTimeout(() => setLayoutPhase('idle'), 1400))
-    }, 800))
-  }, [layoutPhase, updateSettings])
+    } catch {
+      if (!controller.signal.aborted) setLayoutPhase('error')
+    } finally {
+      if (activeRequest.current === controller) activeRequest.current = null
+    }
+  }, [layoutPhase, sourceText])
 
   return (
-    <div className="workbench" data-testid="workbench-shell">
+    <div className="workbench" data-testid="workbench-shell" data-layout-phase={layoutPhase}>
       <AppHeader
         phase={layoutPhase}
+        canStartLayout={Boolean(sourceText.trim())}
         canUndo={canUndo}
         canRedo={canRedo}
         onStartLayout={startLayout}
@@ -40,8 +61,8 @@ export default function App() {
         onExport={() => window.print()}
       />
       <main className="workbench__main">
-        <SourcePanel />
-        <PreviewPanel settings={settings} phase={layoutPhase} onZoomChange={(zoom) => updateSettings({ zoom })} />
+        <SourcePanel value={sourceText} onChange={setSourceText} />
+        <PreviewPanel document={document} settings={settings} phase={layoutPhase} onZoomChange={(zoom) => updateSettings({ zoom })} />
         <InspectorPanel settings={settings} onChange={updateSettings} />
       </main>
       <StatusBar phase={layoutPhase} />

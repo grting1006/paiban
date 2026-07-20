@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "worker:dev": "wrangler dev --config worker/wrangler.toml --port 8787",
+    "worker:deploy": "wrangler deploy --config worker/wrangler.toml",
     "build": "tsc -b && vite build",
+    "build:worker": "tsc -p tsconfig.worker.json",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -13,7 +16,8 @@
     "katex": "^0.18.1",
     "lucide-react": "latest",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "latest",
@@ -25,6 +29,7 @@
     "jsdom": "latest",
     "typescript": "latest",
     "vite": "latest",
-    "vitest": "latest"
+    "vitest": "latest",
+    "wrangler": "^4.112.0"
   }
 }
