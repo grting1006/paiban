@@ -21,11 +21,11 @@ test('exposes the primary local interactions', () => {
   expect(screen.getByRole('button', { name: '开始排版' })).toBeEnabled()
   expect(screen.getByRole('button', { name: '导出 PDF' })).toBeEnabled()
   expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled()
-  expect(screen.getByRole('button', { name: '经典' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('button', { name: '颜色 #147d72' })).toHaveAttribute('aria-pressed', 'true')
   expect(screen.getByRole('region', { name: '原始内容' }).querySelector('[contenteditable="true"]')).toBeInTheDocument()
 })
 
-test('renders four document levels, rich formatting, fonts, and compiled math', () => {
+test('renders four document levels, rich formatting, and compiled math', () => {
   const { container } = render(<App />)
 
   expect(screen.getByRole('heading', { level: 1, name: '人工智能如何改变知识工作的方式' })).toBeInTheDocument()
@@ -33,7 +33,7 @@ test('renders four document levels, rich formatting, fonts, and compiled math', 
   expect(screen.getByRole('heading', { level: 3, name: '信息结构决定阅读路径' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { level: 4, name: '排版时需要保留的内容' })).toBeInTheDocument()
   expect(screen.getByText('协作伙伴').tagName).toBe('STRONG')
-  expect(screen.getAllByRole('option')).toHaveLength(13)
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   expect(container.querySelectorAll('.katex').length).toBeGreaterThan(0)
 })
 
@@ -63,12 +63,12 @@ test('sends the source to the layout service and renders the accepted document',
   vi.unstubAllGlobals()
 })
 
-test('updates templates locally and sends export to browser print', () => {
+test('updates the accent locally and sends export to browser print', () => {
   const print = vi.spyOn(window, 'print').mockImplementation(() => undefined)
   render(<App />)
 
-  fireEvent.click(screen.getByRole('button', { name: '简约' }))
-  expect(screen.getByRole('button', { name: '简约' })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(screen.getByRole('button', { name: '颜色 #df6c55' }))
+  expect(screen.getByRole('button', { name: '颜色 #df6c55' })).toHaveAttribute('aria-pressed', 'true')
   expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled()
 
   fireEvent.click(screen.getByRole('button', { name: '导出 PDF' }))
@@ -82,4 +82,17 @@ test('locks the approved desktop-only three-column layout', () => {
   expect(styles).toContain('grid-template-columns: minmax(300px, 31%) minmax(560px, 1fr) 210px')
   expect(styles).toContain('min-width: 1180px')
   expect(styles).not.toContain('@media (max-width')
+})
+
+test('locks fixed typography while leaving only the accent customizable', () => {
+  const styles = readFileSync('src/styles/app.css', 'utf8')
+  render(<App />)
+
+  expect(styles).toContain('"Source Han Serif SC"')
+  expect(styles).toContain('"Source Han Sans SC"')
+  expect(styles).toContain('font-family: KaiTi')
+  expect(styles).toContain('font-style: italic')
+  expect(styles).toContain('font-weight: 700')
+  expect(screen.queryByText('版式模板')).not.toBeInTheDocument()
+  expect(screen.queryByText('正文样式')).not.toBeInTheDocument()
 })

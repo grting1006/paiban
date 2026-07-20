@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import type { LayoutDocument } from '../document/types'
 import { DocumentRenderer } from './DocumentRenderer'
-import { fonts, type DocumentSettings, type LayoutPhase } from '../workbench'
+import type { DocumentSettings, LayoutPhase } from '../workbench'
 
 interface PreviewPanelProps {
   document: LayoutDocument
@@ -13,20 +13,13 @@ interface PreviewPanelProps {
 
 type PaperStyle = CSSProperties & {
   '--accent': string
-  '--body-font': string
-  '--body-size': string
-  '--body-leading': number
   '--paper-scale': number
   '--zoom-progress': string
 }
 
 export function PreviewPanel({ document, settings, phase, onZoomChange }: PreviewPanelProps) {
-  const font = fonts.find((item) => item.id === settings.font) ?? fonts[0]
   const style: PaperStyle = {
     '--accent': settings.accent,
-    '--body-font': font.css,
-    '--body-size': `${settings.fontSize}px`,
-    '--body-leading': settings.lineHeight,
     '--paper-scale': settings.zoom / 78,
     '--zoom-progress': `${((settings.zoom - 60) / 36) * 100}%`,
   }
@@ -43,7 +36,7 @@ export function PreviewPanel({ document, settings, phase, onZoomChange }: Previe
         </div>
       </div>
       <div className="canvas">
-        <article className={`paper paper--${settings.template}${phase === 'running' ? ' is-formatting' : ''}${phase === 'done' ? ' is-complete' : ''}`}>
+        <article className={`paper${phase === 'running' ? ' is-formatting' : ''}${phase === 'done' ? ' is-complete' : ''}`}>
           <DocumentRenderer document={document} />
           <div className="paper__folio"><span>排版台</span><span>01</span></div>
         </article>
