@@ -1,10 +1,87 @@
-export const sampleDocument = {
-  title: '人工智能如何改变知识工作的方式',
-  deck: '从生成内容到组织信息，AI 正在重新定义内容的生产与呈现。',
-  sectionTitle: '从生成内容到组织信息',
-  paragraphs: [
-    '人工智能不再只是自动化工具，它正在成为知识工作者的协作伙伴。真正影响阅读体验的，不只是文字本身，也包括信息结构、视觉层级与页面节奏。',
-    '当内容结构被清晰识别，标题、正文、引语与数据便能进入合适的位置，最终形成稳定、专业并适合分享的页面。',
-  ],
-  quote: '好的排版让复杂观点更容易被理解，也让内容拥有可以被保存和传播的形态。',
-} as const
+import { documentSourceText } from '../document/normalize'
+import type { DocumentBlock, InlineContent, InlineMark, LayoutDocument } from '../document/types'
+
+const text = (value: string, source = value, marks?: InlineMark[]): InlineContent => ({
+  type: 'text',
+  text: value,
+  source,
+  marks,
+})
+
+const blocks: DocumentBlock[] = [
+  {
+    id: 'title',
+    type: 'heading',
+    level: 1,
+    source: '# 人工智能如何改变知识工作的方式',
+    content: [text('人工智能如何改变知识工作的方式')],
+  },
+  {
+    id: 'section-1',
+    type: 'heading',
+    level: 2,
+    source: '## 从生成内容到组织信息',
+    content: [text('从生成内容到组织信息')],
+  },
+  {
+    id: 'paragraph-1',
+    type: 'paragraph',
+    source: '人工智能正在成为知识工作者的**协作伙伴**，排版系统需要保留原文，同时识别 $E = mc^2$ 这样的公式。',
+    content: [
+      text('人工智能正在成为知识工作者的'),
+      text('协作伙伴', '**协作伙伴**', ['bold']),
+      text('，排版系统需要保留原文，同时识别 '),
+      { type: 'math', latex: 'E = mc^2', source: '$E = mc^2$' },
+      text(' 这样的公式。'),
+    ],
+  },
+  {
+    id: 'section-1-1',
+    type: 'heading',
+    level: 3,
+    source: '### 信息结构决定阅读路径',
+    content: [text('信息结构决定阅读路径')],
+  },
+  {
+    id: 'quote-1',
+    type: 'quote',
+    source: '> 好的排版让复杂观点更容易被理解。',
+    content: [text('好的排版让复杂观点更容易被理解。')],
+  },
+  {
+    id: 'section-1-1-1',
+    type: 'heading',
+    level: 4,
+    source: '#### 排版时需要保留的内容',
+    content: [text('排版时需要保留的内容')],
+  },
+  {
+    id: 'list-1',
+    type: 'list',
+    ordered: false,
+    source: '- 原始文字\n- 明确的强调格式\n- 数学公式',
+    items: [
+      [text('原始文字')],
+      [text('明确的强调格式')],
+      [text('数学公式')],
+    ],
+  },
+  {
+    id: 'math-1',
+    type: 'math',
+    source: '$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$',
+    latex: '\\int_0^1 x^2 \\, dx = \\frac{1}{3}',
+  },
+]
+
+export const sampleDocument: LayoutDocument = {
+  version: 1,
+  sourceText: documentSourceText(blocks),
+  meta: {
+    category: 'TECHNOLOGY & WORK',
+    description: '从生成内容到组织信息，AI 正在重新定义内容的生产与呈现。',
+  },
+  blocks,
+}
+
+export const sampleSourceText = sampleDocument.sourceText

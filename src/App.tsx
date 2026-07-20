@@ -22,7 +22,7 @@ export default function App() {
     if (layoutPhase === 'running') return
     setLayoutPhase('running')
     timers.current.push(window.setTimeout(() => {
-      updateSettings({ template: 'editorial', font: 'songti', fontSize: 10.5, lineHeight: 1.7 })
+      updateSettings({ template: 'editorial', font: 'source-serif', fontSize: 10.5, lineHeight: 1.7 })
       setLayoutPhase('done')
       timers.current.push(window.setTimeout(() => setLayoutPhase('idle'), 1400))
     }, 800))

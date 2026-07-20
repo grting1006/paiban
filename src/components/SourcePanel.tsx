@@ -1,5 +1,5 @@
 import { Bold, Heading1, Heading2, Italic, List, Quote } from 'lucide-react'
-import { sampleDocument } from '../content/sampleDocument'
+import { sampleSourceText } from '../content/sampleDocument'
 
 interface TextTool {
   label: string
@@ -35,12 +35,7 @@ export function SourcePanel() {
           ><Icon size={15} /></button>
         ))}
       </div>
-      <article className="source-editor" contentEditable suppressContentEditableWarning spellCheck={false}>
-        <h1>{sampleDocument.title}</h1>
-        <p>{sampleDocument.paragraphs[0]}</p>
-        <h2>{sampleDocument.sectionTitle}</h2>
-        <p>{sampleDocument.quote}</p>
-      </article>
+      <article className="source-editor" contentEditable suppressContentEditableWarning spellCheck={false}>{sampleSourceText}</article>
     </section>
   )
 }

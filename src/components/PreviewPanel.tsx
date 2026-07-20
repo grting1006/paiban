@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { sampleDocument } from '../content/sampleDocument'
+import { DocumentRenderer } from './DocumentRenderer'
 import { fonts, type DocumentSettings, type LayoutPhase } from '../workbench'
 
 interface PreviewPanelProps {
@@ -42,13 +43,7 @@ export function PreviewPanel({ settings, phase, onZoomChange }: PreviewPanelProp
       </div>
       <div className="canvas">
         <article className={`paper paper--${settings.template}${phase === 'running' ? ' is-formatting' : ''}${phase === 'done' ? ' is-complete' : ''}`}>
-          <div className="paper__kicker">TECHNOLOGY &amp; WORK</div>
-          <h1>{sampleDocument.title}</h1>
-          <div className="paper__deck">{sampleDocument.deck}</div>
-          <h2>{sampleDocument.sectionTitle}</h2>
-          <p>{sampleDocument.paragraphs[0]}</p>
-          <blockquote>{sampleDocument.quote}</blockquote>
-          <p>{sampleDocument.paragraphs[1]}</p>
+          <DocumentRenderer document={sampleDocument} />
           <div className="paper__folio"><span>排版台</span><span>01</span></div>
         </article>
       </div>
