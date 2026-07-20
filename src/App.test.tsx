@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { render, screen, within } from '@testing-library/react'
-import { expect, test } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { expect, test, vi } from 'vitest'
 import App from './App'
 
 test('renders the complete desktop workbench shell', () => {
@@ -13,13 +13,27 @@ test('renders the complete desktop workbench shell', () => {
   expect(screen.getByRole('contentinfo')).toHaveTextContent('A4 · 210 × 297 mm')
 })
 
-test('keeps every displayed command non-functional', () => {
+test('exposes the primary local interactions', () => {
   render(<App />)
-  const shell = screen.getByTestId('workbench-shell')
-  const controls = within(shell).getAllByRole('button')
 
-  expect(controls.length).toBeGreaterThan(8)
-  controls.forEach((control) => expect(control).toBeDisabled())
+  expect(screen.getByRole('button', { name: '开始排版' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: '导出 PDF' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: '经典' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('region', { name: '原始内容' }).querySelector('[contenteditable="true"]')).toBeInTheDocument()
+})
+
+test('updates templates locally and sends export to browser print', () => {
+  const print = vi.spyOn(window, 'print').mockImplementation(() => undefined)
+  render(<App />)
+
+  fireEvent.click(screen.getByRole('button', { name: '简约' }))
+  expect(screen.getByRole('button', { name: '简约' })).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled()
+
+  fireEvent.click(screen.getByRole('button', { name: '导出 PDF' }))
+  expect(print).toHaveBeenCalledOnce()
+  print.mockRestore()
 })
 
 test('locks the approved desktop-only three-column layout', () => {
@@ -27,5 +41,5 @@ test('locks the approved desktop-only three-column layout', () => {
 
   expect(styles).toContain('grid-template-columns: minmax(300px, 31%) minmax(560px, 1fr) 210px')
   expect(styles).toContain('min-width: 1180px')
-  expect(styles).not.toContain('@media')
+  expect(styles).not.toContain('@media (max-width')
 })
