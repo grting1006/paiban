@@ -32,7 +32,7 @@ const sourceBlockSchema = {
 const headingSchema = z.object({
   ...sourceBlockSchema,
   type: z.literal('heading'),
-  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   content: inlineArraySchema,
 }).strict()
 
@@ -49,11 +49,22 @@ const quoteSchema = z.object({
   attribution: inlineArraySchema.optional(),
 }).strict()
 
+const listItemSchema: z.ZodType<{
+  content: z.infer<typeof inlineArraySchema>
+  children?: { ordered: boolean; items: unknown[] }
+}> = z.lazy(() => z.object({
+  content: inlineArraySchema,
+  children: z.object({
+    ordered: z.boolean(),
+    items: z.array(listItemSchema),
+  }).strict().optional(),
+}).strict())
+
 const listSchema = z.object({
   ...sourceBlockSchema,
   type: z.literal('list'),
   ordered: z.boolean(),
-  items: z.array(inlineArraySchema),
+  items: z.array(listItemSchema),
 }).strict()
 
 const codeSchema = z.object({

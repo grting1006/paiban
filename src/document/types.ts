@@ -1,4 +1,4 @@
-export type HeadingLevel = 1 | 2 | 3 | 4
+export type HeadingLevel = 1 | 2 | 3 | 4 | 5
 
 export type InlineMark = 'bold' | 'italic' | 'underline' | 'strikethrough' | 'code'
 
@@ -44,10 +44,18 @@ export interface QuoteBlock extends SourceBlock {
   attribution?: InlineContent[]
 }
 
+export interface ListItem {
+  content: InlineContent[]
+  children?: {
+    ordered: boolean
+    items: ListItem[]
+  }
+}
+
 export interface ListBlock extends SourceBlock {
   type: 'list'
   ordered: boolean
-  items: InlineContent[][]
+  items: ListItem[]
 }
 
 export interface CodeBlock extends SourceBlock {

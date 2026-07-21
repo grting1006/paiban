@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react'
 import katex from 'katex'
-import type { DocumentBlock, InlineContent, InlineMark, LayoutDocument } from '../document/types'
+import type { DocumentBlock, InlineContent, InlineMark, LayoutDocument, ListItem } from '../document/types'
+import { inlineVisibleText } from '../document/normalize'
 
 interface DocumentRendererProps {
   document: LayoutDocument
@@ -43,9 +44,21 @@ function InlineRenderer({ content }: { content: InlineContent[] }) {
   })
 }
 
+function ListRenderer({ ordered, items }: { ordered: boolean; items: ListItem[] }) {
+  const List = ordered ? 'ol' : 'ul'
+  return <List>{items.map((item, index) => <li key={index}>
+    <InlineRenderer content={item.content} />
+    {item.children ? <ListRenderer ordered={item.children.ordered} items={item.children.items} /> : null}
+  </li>)}</List>
+}
+
+function isNumericCell(content: InlineContent[]) {
+  return /^[\s¥￥$€£+\-()\d,.%]+$/.test(inlineVisibleText(content))
+}
+
 function renderBlock(block: DocumentBlock) {
   if (block.type === 'heading') {
-    const Heading = `h${block.level}` as 'h1' | 'h2' | 'h3' | 'h4'
+    const Heading = `h${block.level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5'
     return <Heading key={block.id}><InlineRenderer content={block.content} /></Heading>
   }
   if (block.type === 'paragraph') return <p key={block.id}><InlineRenderer content={block.content} /></p>
@@ -56,15 +69,14 @@ function renderBlock(block: DocumentBlock) {
     </blockquote>
   }
   if (block.type === 'list') {
-    const List = block.ordered ? 'ol' : 'ul'
-    return <List key={block.id}>{block.items.map((item, index) => <li key={`${block.id}-${index}`}><InlineRenderer content={item} /></li>)}</List>
+    return <ListRenderer key={block.id} ordered={block.ordered} items={block.items} />
   }
   if (block.type === 'code') return <pre key={block.id}><code data-language={block.language}>{block.code}</code></pre>
   if (block.type === 'math') return <Formula key={block.id} latex={block.latex} displayMode />
   if (block.type === 'table') {
     return <table key={block.id}>
       <thead><tr>{block.headers.map((header, index) => <th key={`${block.id}-header-${index}`}><InlineRenderer content={header} /></th>)}</tr></thead>
-      <tbody>{block.rows.map((row, rowIndex) => <tr key={`${block.id}-row-${rowIndex}`}>{row.map((cell, cellIndex) => <td key={`${block.id}-${rowIndex}-${cellIndex}`}><InlineRenderer content={cell} /></td>)}</tr>)}</tbody>
+      <tbody>{block.rows.map((row, rowIndex) => <tr key={`${block.id}-row-${rowIndex}`}>{row.map((cell, cellIndex) => <td className={isNumericCell(cell) ? 'is-numeric' : undefined} key={`${block.id}-${rowIndex}-${cellIndex}`}><InlineRenderer content={cell} /></td>)}</tr>)}</tbody>
     </table>
   }
   if (block.type === 'callout') return <aside className={`document-callout document-callout--${block.tone}`} key={block.id}><InlineRenderer content={block.content} /></aside>

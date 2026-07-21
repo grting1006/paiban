@@ -11,7 +11,7 @@ const formatDecisionSchema = z.object({
 const blockPlanSchema = z.object({
   index: z.number().int().nonnegative(),
   type: z.enum(['heading', 'paragraph', 'quote', 'list', 'code', 'math', 'table', 'callout', 'divider']),
-  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional(),
+  level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
   ordered: z.boolean().optional(),
   tone: z.enum(['note', 'important']).optional(),
   language: z.string().optional(),
@@ -81,15 +81,59 @@ function inlineContent(source: string, decisions: FormatDecision[]): InlineConte
 }
 
 function withoutHeadingMarker(source: string) {
-  return source.replace(/^#{1,4}[ \t]+/, '')
+  return source.replace(/^#{1,5}[ \t]+/, '')
 }
 
 function withoutQuoteMarker(source: string) {
   return source.replace(/^>[ \t]?/gm, '')
 }
 
-function listItems(source: string) {
-  return source.split('\n').map((line) => line.replace(/^[ \t]*(?:[-+*]|\d+[.)])[ \t]+/, ''))
+function occurrencesBefore(value: string, search: string, end: number) {
+  let count = 0
+  let cursor = value.indexOf(search)
+  while (cursor !== -1 && cursor < end) {
+    count += 1
+    cursor = value.indexOf(search, cursor + search.length)
+  }
+  return count
+}
+
+function listItems(source: string, decisions: FormatDecision[]) {
+  let sourceOffset = 0
+  const lines = source.split('\n').map((line) => {
+    const match = line.match(/^([ \t]*)([-+*]|\d+[.)]|[a-zA-Z][.)])[ \t]+(.*)$/)
+    const indent = match?.[1].replace(/\t/g, '  ').length ?? 0
+    const marker = match?.[2] ?? '-'
+    const value = match?.[3] ?? line
+    const contentStart = sourceOffset + line.length - value.length
+    const lineDecisions = decisions.flatMap((decision) => {
+      const decisionStart = nthIndexOf(source, decision.source, decision.occurrence)
+      if (decisionStart < contentStart || decisionStart + decision.source.length > contentStart + value.length) return []
+      return [{
+        ...decision,
+        occurrence: occurrencesBefore(value, decision.source, decisionStart - contentStart),
+      }]
+    })
+    sourceOffset += line.length + 1
+    return {
+      indent,
+      ordered: /^(?:\d+|[a-zA-Z])[.)]$/.test(marker),
+      content: inlineContent(value, lineDecisions),
+    }
+  })
+  const baseIndent = Math.min(...lines.map((line) => line.indent))
+  const items: import('../../src/document/types').ListItem[] = []
+
+  for (const line of lines) {
+    if (line.indent > baseIndent && items.length) {
+      const parent = items[items.length - 1]
+      parent.children ??= { ordered: line.ordered, items: [] }
+      parent.children.items.push({ content: line.content })
+    } else {
+      items.push({ content: line.content })
+    }
+  }
+  return items
 }
 
 function tableRows(source: string) {
@@ -105,7 +149,7 @@ function buildBlock(source: string, index: number, plan?: LayoutPlan['blocks'][n
 
   if (type === 'heading') return { id, type, source, level: plan?.level ?? 2, content: inlineContent(withoutHeadingMarker(source), formats) }
   if (type === 'quote') return { id, type, source, content: inlineContent(withoutQuoteMarker(source), formats) }
-  if (type === 'list') return { id, type, source, ordered: plan?.ordered ?? /^\s*\d+[.)]/.test(source), items: listItems(source).map((item) => inlineContent(item, [])) }
+  if (type === 'list') return { id, type, source, ordered: plan?.ordered ?? /^\s*(?:\d+|[a-zA-Z])[.)]/.test(source), items: listItems(source, formats) }
   if (type === 'code') return { id, type, source, language: plan?.language, code: source.replace(/^```[^\n]*\n?|\n?```$/g, '') }
   if (type === 'math') return { id, type, source, latex: source.replace(/^\$\$|\$\$$/g, '').replace(/^\\\[|\\\]$/g, '') }
   if (type === 'table') {

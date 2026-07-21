@@ -20,8 +20,8 @@ type PaperStyle = CSSProperties & {
 export function PreviewPanel({ document, settings, phase, onZoomChange }: PreviewPanelProps) {
   const style: PaperStyle = {
     '--accent': settings.accent,
-    '--paper-scale': settings.zoom / 78,
-    '--zoom-progress': `${((settings.zoom - 60) / 36) * 100}%`,
+    '--paper-scale': settings.zoom / 100,
+    '--zoom-progress': `${((settings.zoom - 70) / 60) * 100}%`,
   }
 
   return (
@@ -29,9 +29,9 @@ export function PreviewPanel({ document, settings, phase, onZoomChange }: Previe
       <div className="preview-toolbar">
         <span className="preview-toolbar__spacer" />
         <div className="zoom-control">
-          <button aria-label="缩小" title="缩小" onClick={() => onZoomChange(Math.max(60, settings.zoom - 6))} disabled={settings.zoom <= 60}><Minus size={14} /></button>
+          <button aria-label="缩小" title="缩小" onClick={() => onZoomChange(Math.max(70, settings.zoom - 10))} disabled={settings.zoom <= 70}><Minus size={14} /></button>
           <span className="zoom-track"><i /></span>
-          <button aria-label="放大" title="放大" onClick={() => onZoomChange(Math.min(96, settings.zoom + 6))} disabled={settings.zoom >= 96}><Plus size={14} /></button>
+          <button aria-label="放大" title="放大" onClick={() => onZoomChange(Math.min(130, settings.zoom + 10))} disabled={settings.zoom >= 130}><Plus size={14} /></button>
           <strong>{settings.zoom}%</strong>
         </div>
       </div>

@@ -25,13 +25,14 @@ test('exposes the primary local interactions', () => {
   expect(screen.getByRole('region', { name: '原始内容' }).querySelector('[contenteditable="true"]')).toBeInTheDocument()
 })
 
-test('renders four document levels, rich formatting, and compiled math', () => {
+test('renders five document levels, rich formatting, and compiled math', () => {
   const { container } = render(<App />)
 
   expect(screen.getByRole('heading', { level: 1, name: '人工智能如何改变知识工作的方式' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { level: 2, name: '从生成内容到组织信息' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { level: 3, name: '信息结构决定阅读路径' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { level: 4, name: '排版时需要保留的内容' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { level: 5, name: '进一步说明' })).toBeInTheDocument()
   expect(screen.getByText('协作伙伴').tagName).toBe('STRONG')
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   expect(container.querySelectorAll('.katex').length).toBeGreaterThan(0)
@@ -91,7 +92,11 @@ test('locks fixed typography while leaving only the accent customizable', () => 
   expect(styles).toContain('"Source Han Serif SC"')
   expect(styles).toContain('"Source Han Sans SC"')
   expect(styles).toContain('font-family: KaiTi')
-  expect(styles).toContain('font-style: italic')
+  expect(styles).toContain('font-family: "Times New Roman", KaiTi')
+  expect(styles).toContain('.paper blockquote { margin: .5em 2em;')
+  expect(styles).toContain('font-family: "Times New Roman", "Source Han Serif SC"')
+  expect(styles).toContain('font-style: normal')
+  expect(styles).toContain('background: transparent')
   expect(styles).toContain('font-weight: 700')
   expect(screen.queryByText('版式模板')).not.toBeInTheDocument()
   expect(screen.queryByText('正文样式')).not.toBeInTheDocument()

@@ -59,12 +59,28 @@ const blocks: DocumentBlock[] = [
     id: 'list-1',
     type: 'list',
     ordered: false,
-    source: '- 原始文字\n- 明确的强调格式\n- 数学公式',
+    source: '- 原始文字\n  - 标题与正文\n  - 引用和列表\n- 明确的强调格式\n- 数学公式',
     items: [
-      [text('原始文字')],
-      [text('明确的强调格式')],
-      [text('数学公式')],
+      {
+        content: [text('原始文字')],
+        children: {
+          ordered: false,
+          items: [
+            { content: [text('标题与正文')] },
+            { content: [text('引用和列表')] },
+          ],
+        },
+      },
+      { content: [text('明确的强调格式')] },
+      { content: [text('数学公式')] },
     ],
+  },
+  {
+    id: 'section-1-1-1-1',
+    type: 'heading',
+    level: 5,
+    source: '##### 进一步说明',
+    content: [text('进一步说明')],
   },
   {
     id: 'math-1',

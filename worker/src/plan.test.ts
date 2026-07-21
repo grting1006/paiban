@@ -20,7 +20,8 @@ test('builds a rich document plan without changing the source', () => {
       { index: 4, type: 'quote', formats: [] },
       { index: 5, type: 'heading', level: 4, formats: [] },
       { index: 6, type: 'list', ordered: false, formats: [] },
-      { index: 7, type: 'math', formats: [] },
+      { index: 7, type: 'heading', level: 5, formats: [] },
+      { index: 8, type: 'math', formats: [] },
     ],
   }
 
@@ -32,5 +33,35 @@ test('builds a rich document plan without changing the source', () => {
   if (paragraph.type === 'paragraph') {
     expect(paragraph.content.some((item) => item.type === 'text' && item.marks?.includes('bold'))).toBe(true)
     expect(paragraph.content.some((item) => item.type === 'math' && item.latex === 'E = mc^2')).toBe(true)
+  }
+
+  const list = document.blocks[6]
+  expect(list.type).toBe('list')
+  if (list.type === 'list') {
+    expect(list.items[0].children?.items).toHaveLength(2)
+    expect(list.items[0].children?.ordered).toBe(false)
+  }
+})
+
+test('preserves ordered list nesting and confirmed inline formatting', () => {
+  const source = '1. 第一项\n  a) **子项**\n2. 第二项'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [{
+      index: 0,
+      type: 'list',
+      ordered: true,
+      formats: [{ source: '**子项**', kind: 'bold', occurrence: 0 }],
+    }],
+  })
+  const list = document.blocks[0]
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(list.type).toBe('list')
+  if (list.type === 'list') {
+    expect(list.ordered).toBe(true)
+    expect(list.items).toHaveLength(2)
+    expect(list.items[0].children?.ordered).toBe(true)
+    expect(list.items[0].children?.items).toHaveLength(1)
+    expect(list.items[0].children?.items[0].content[0]).toMatchObject({ text: '子项', marks: ['bold'] })
   }
 })
