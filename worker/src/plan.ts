@@ -27,9 +27,22 @@ export const layoutPlanSchema = z.object({
 export type LayoutPlan = z.infer<typeof layoutPlanSchema>
 type FormatDecision = z.infer<typeof formatDecisionSchema>
 
+function isStandalonePlainHeading(sourceText: string, start: number, end: number, source: string) {
+  const text = source.trim()
+  const startsLine = start === 0 || sourceText[start - 1] === '\n'
+  const endsLine = end === sourceText.length || sourceText[end] === '\n'
+  return startsLine
+    && endsLine
+    && text.length >= 2
+    && text.length <= 30
+    && !/[。！？!?；;：:]$/.test(text)
+    && !/^(?:#{1,5}|>|[-+*]|\d+[.)]|[a-zA-Z][.)])(?:[ \t]+|$)/.test(text)
+}
+
 export function buildDeterministicLayoutPlan(sourceText: string): LayoutPlan {
+  const units = sourceUnits(sourceText)
   return {
-    blocks: sourceUnits(sourceText).map(({ index, source }) => {
+    blocks: units.map(({ index, start, end, source }) => {
       const trimmed = source.trimStart()
       const heading = trimmed.match(/^(#{1,5})[ \t]+/)
       if (heading) return { start: index, end: index, type: 'heading' as const, level: heading[1].length as 1 | 2 | 3 | 4 | 5, formats: [] }
@@ -52,6 +65,9 @@ export function buildDeterministicLayoutPlan(sourceText: string): LayoutPlan {
         return { start: index, end: index, type: 'table' as const, formats: [] }
       }
       if (/^\s*(?:---+|___+|\*\*\*+)\s*$/.test(source)) return { start: index, end: index, type: 'divider' as const, formats: [] }
+      if (isStandalonePlainHeading(sourceText, start, end, source) && index < units.length - 1) {
+        return { start: index, end: index, type: 'heading' as const, level: index === 0 ? 1 as const : 2 as const, formats: [] }
+      }
       return { start: index, end: index, type: 'paragraph' as const, formats: [] }
     }),
   }

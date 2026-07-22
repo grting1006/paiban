@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { hasSourceFidelity } from '../../src/document/normalize'
 import { sampleSourceText } from '../../src/content/sampleDocument'
-import { buildDocumentFromPlan, type LayoutPlan } from './plan'
+import { buildDeterministicLayoutPlan, buildDocumentFromPlan, type LayoutPlan } from './plan'
 import { sourceUnits } from './units'
 
 test('builds a rich document plan without changing the source', () => {
@@ -106,4 +106,18 @@ test('builds semantic ranges without blank lines or formatting markers', () => {
   expect(document.blocks[0]).toMatchObject({ type: 'heading', level: 1, source: '年度工作总结' })
   expect(document.blocks[1]).toMatchObject({ type: 'heading', level: 2, source: '项目已经进入交付阶段' })
   expect(document.blocks[2]).toMatchObject({ type: 'paragraph', source: '核心功能已经完成。风险仍需跟踪。' })
+})
+
+test('keeps an obvious heading hierarchy when AI providers are unavailable', () => {
+  const source = '人工智能项目年度总结\n项目背景\n本年度团队围绕知识整理效率开展工作。\n核心成果\n系统已经能够处理常见知识文章。'
+  const document = buildDocumentFromPlan(source, buildDeterministicLayoutPlan(source))
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(document.blocks).toMatchObject([
+    { type: 'heading', level: 1, source: '人工智能项目年度总结' },
+    { type: 'heading', level: 2, source: '项目背景' },
+    { type: 'paragraph', source: '本年度团队围绕知识整理效率开展工作。' },
+    { type: 'heading', level: 2, source: '核心成果' },
+    { type: 'paragraph', source: '系统已经能够处理常见知识文章。' },
+  ])
 })
