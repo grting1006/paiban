@@ -1,6 +1,7 @@
 import type { LayoutDocument } from '../../src/document/types'
 import { errorCode, LayoutGenerationError } from './generation'
 import { createOpenRouterLayoutDocument } from './openrouter'
+import { buildDeterministicLayoutPlan, buildDocumentFromPlan } from './plan'
 import { createZhipuLayoutDocument } from './zhipu'
 
 interface ProviderClients {
@@ -43,6 +44,9 @@ export async function createLayoutDocumentWithFallback(
     }
   }
 
-  if (lastError) throw lastError
+  if (lastError) {
+    console.warn('AI providers unavailable; using deterministic layout', errorCode(lastError))
+    return buildDocumentFromPlan(sourceText, buildDeterministicLayoutPlan(sourceText))
+  }
   throw new LayoutGenerationError('service_not_configured')
 }

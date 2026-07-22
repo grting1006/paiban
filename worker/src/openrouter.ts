@@ -33,7 +33,7 @@ export async function createOpenRouterLayoutDocument(sourceText: string, apiKey:
       response_format: { type: 'json_object' },
       temperature: 0.1,
     }),
-    signal: AbortSignal.timeout(35_000),
+    signal: AbortSignal.timeout(20_000),
   })
 
   const payload = await response.json().catch(() => null) as OpenRouterResponse | null

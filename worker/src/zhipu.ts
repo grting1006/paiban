@@ -35,7 +35,7 @@ async function requestPlan(sourceText: string, apiKey: string) {
       response_format: { type: 'json_object' },
       temperature: 0.1,
     }),
-    signal: AbortSignal.timeout(18_000),
+    signal: AbortSignal.timeout(15_000),
   })
 
   if (response.ok) return response

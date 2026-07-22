@@ -25,6 +25,68 @@ export const layoutPlanSchema = z.object({
 export type LayoutPlan = z.infer<typeof layoutPlanSchema>
 type FormatDecision = z.infer<typeof formatDecisionSchema>
 
+export function buildDeterministicLayoutPlan(sourceText: string): LayoutPlan {
+  return {
+    blocks: sourceText.split('\n\n').map((source, index) => {
+      const trimmed = source.trimStart()
+      const heading = trimmed.match(/^(#{1,5})[ \t]+/)
+      if (heading) return { index, type: 'heading' as const, level: heading[1].length as 1 | 2 | 3 | 4 | 5, formats: [] }
+      if (/^```/.test(trimmed)) return { index, type: 'code' as const, formats: [], language: trimmed.match(/^```([^\n]*)/)?.[1] || undefined }
+      if (/^(?:\$\$|\\\[)/.test(trimmed)) return { index, type: 'math' as const, formats: [] }
+      if (/^>[ \t]?/m.test(trimmed)) return { index, type: 'quote' as const, formats: [] }
+
+      const lines = source.split('\n').filter((line) => line.trim())
+      const isList = lines.length > 0 && lines.every((line) => /^\s*(?:[-+*]|\d+[.)]|[a-zA-Z][.)])[ \t]+/.test(line))
+      if (isList) {
+        return {
+          index,
+          type: 'list' as const,
+          ordered: /^\s*(?:\d+|[a-zA-Z])[.)]/.test(lines[0]),
+          formats: [],
+        }
+      }
+      if (lines.length >= 2 && lines.every((line) => /^\s*\|.*\|\s*$/.test(line))) {
+        return { index, type: 'table' as const, formats: [] }
+      }
+      if (/^\s*(?:---+|___+|\*\*\*+)\s*$/.test(source)) return { index, type: 'divider' as const, formats: [] }
+      return { index, type: 'paragraph' as const, formats: [] }
+    }),
+  }
+}
+
+function safeFormatDecisions(source: string): FormatDecision[] {
+  const decisions: FormatDecision[] = []
+  const occurrences = new Map<string, number>()
+
+  function collect(pattern: RegExp, kind: FormatDecision['kind'], accepts: (inner: string) => boolean = () => true) {
+    for (const match of source.matchAll(pattern)) {
+      const fragment = match[0]
+      if (!accepts(match[1] ?? '')) continue
+      const occurrence = occurrences.get(fragment) ?? 0
+      decisions.push({ source: fragment, kind, occurrence })
+      occurrences.set(fragment, occurrence + 1)
+    }
+  }
+
+  collect(/\*\*([^*\n]+)\*\*/g, 'bold')
+  collect(/~~([^~\n]+)~~/g, 'strikethrough')
+  collect(/`([^`\n]+)`/g, 'code')
+  collect(/(?<!\$)\$(?!\$)([^$\n]+)(?<!\$)\$(?!\$)/g, 'math', (inner) => /[\\=^_{}]|[A-Za-z]\s*=|\d\s*[+*/-]/.test(inner))
+  collect(/\\\(([^\n]+)\\\)/g, 'math', (inner) => /[\\=^_{}]|[A-Za-z]\s*=|\d\s*[+*/-]/.test(inner))
+
+  return decisions
+}
+
+function mergeFormatDecisions(source: string, decisions: FormatDecision[]) {
+  const merged = [...decisions]
+  const existing = new Set(decisions.map((decision) => `${decision.kind}\0${decision.source}\0${decision.occurrence}`))
+  for (const decision of safeFormatDecisions(source)) {
+    const key = `${decision.kind}\0${decision.source}\0${decision.occurrence}`
+    if (!existing.has(key)) merged.push(decision)
+  }
+  return merged
+}
+
 function nthIndexOf(value: string, search: string, occurrence: number) {
   let index = -1
   for (let count = 0; count <= occurrence; count += 1) {
@@ -81,11 +143,11 @@ function inlineContent(source: string, decisions: FormatDecision[]): InlineConte
 }
 
 function withoutHeadingMarker(source: string) {
-  return source.replace(/^#{1,5}[ \t]+/, '')
+  return source.replace(/^\s*#{1,5}[ \t]+/, '')
 }
 
 function withoutQuoteMarker(source: string) {
-  return source.replace(/^>[ \t]?/gm, '')
+  return source.replace(/^\s*>[ \t]?/gm, '')
 }
 
 function occurrencesBefore(value: string, search: string, end: number) {
@@ -145,7 +207,7 @@ function tableRows(source: string) {
 function buildBlock(source: string, index: number, plan?: LayoutPlan['blocks'][number]): DocumentBlock {
   const id = `block-${index + 1}`
   const type = plan?.type ?? 'paragraph'
-  const formats = plan?.formats ?? []
+  const formats = mergeFormatDecisions(source, plan?.formats ?? [])
 
   if (type === 'heading') return { id, type, source, level: plan?.level ?? 2, content: inlineContent(withoutHeadingMarker(source), formats) }
   if (type === 'quote') return { id, type, source, content: inlineContent(withoutQuoteMarker(source), formats) }
