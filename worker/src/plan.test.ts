@@ -2,26 +2,34 @@ import { expect, test } from 'vitest'
 import { hasSourceFidelity } from '../../src/document/normalize'
 import { sampleSourceText } from '../../src/content/sampleDocument'
 import { buildDocumentFromPlan, type LayoutPlan } from './plan'
+import { sourceUnits } from './units'
 
 test('builds a rich document plan without changing the source', () => {
+  const units = sourceUnits(sampleSourceText)
+  const at = (text: string) => {
+    const index = units.findIndex((unit) => unit.source.includes(text))
+    if (index === -1) throw new Error(`Missing source unit: ${text}`)
+    return index
+  }
   const plan: LayoutPlan = {
     blocks: [
-      { index: 0, type: 'heading', level: 1, formats: [] },
-      { index: 1, type: 'heading', level: 2, formats: [] },
+      { start: at('# 人工智能'), end: at('# 人工智能'), type: 'heading', level: 1, formats: [] },
+      { start: at('## 从生成内容'), end: at('## 从生成内容'), type: 'heading', level: 2, formats: [] },
       {
-        index: 2,
+        start: at('人工智能正在成为'),
+        end: at('人工智能正在成为'),
         type: 'paragraph',
         formats: [
           { source: '**协作伙伴**', kind: 'bold', occurrence: 0 },
           { source: '$E = mc^2$', kind: 'math', occurrence: 0 },
         ],
       },
-      { index: 3, type: 'heading', level: 3, formats: [] },
-      { index: 4, type: 'quote', formats: [] },
-      { index: 5, type: 'heading', level: 4, formats: [] },
-      { index: 6, type: 'list', ordered: false, formats: [] },
-      { index: 7, type: 'heading', level: 5, formats: [] },
-      { index: 8, type: 'math', formats: [] },
+      { start: at('### 信息结构'), end: at('### 信息结构'), type: 'heading', level: 3, formats: [] },
+      { start: at('> 好的排版'), end: at('> 好的排版'), type: 'quote', formats: [] },
+      { start: at('#### 排版时'), end: at('#### 排版时'), type: 'heading', level: 4, formats: [] },
+      { start: at('- 原始文字'), end: at('- 数学公式'), type: 'list', ordered: false, formats: [] },
+      { start: at('##### 进一步说明'), end: at('##### 进一步说明'), type: 'heading', level: 5, formats: [] },
+      { start: at('$$\\int'), end: at('$$\\int'), type: 'math', formats: [] },
     ],
   }
 
@@ -47,7 +55,8 @@ test('preserves ordered list nesting and confirmed inline formatting', () => {
   const source = '1. 第一项\n  a) **子项**\n2. 第二项'
   const document = buildDocumentFromPlan(source, {
     blocks: [{
-      index: 0,
+      start: 0,
+      end: 2,
       type: 'list',
       ordered: true,
       formats: [{ source: '**子项**', kind: 'bold', occurrence: 0 }],
@@ -69,7 +78,7 @@ test('preserves ordered list nesting and confirmed inline formatting', () => {
 test('recognizes unambiguous inline formatting when the model omits it', () => {
   const source = '这是**重点**，也有*斜体*，公式为 $E=mc^2$，价格 $5 and $10 保持原样。'
   const document = buildDocumentFromPlan(source, {
-    blocks: [{ index: 0, type: 'paragraph', formats: [] }],
+    blocks: [{ start: 0, end: 0, type: 'paragraph', formats: [] }],
   })
   const paragraph = document.blocks[0]
 
@@ -80,4 +89,21 @@ test('recognizes unambiguous inline formatting when the model omits it', () => {
     expect(paragraph.content).toContainEqual(expect.objectContaining({ type: 'math', latex: 'E=mc^2' }))
     expect(paragraph.content).toContainEqual(expect.objectContaining({ type: 'text', text: '，价格 $5 and $10 保持原样。' }))
   }
+})
+
+test('builds semantic ranges without blank lines or formatting markers', () => {
+  const source = '年度工作总结\n项目已经进入交付阶段\n核心功能已经完成。风险仍需跟踪。'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [
+      { start: 0, end: 0, type: 'heading', level: 1, formats: [] },
+      { start: 1, end: 1, type: 'heading', level: 2, formats: [] },
+      { start: 2, end: 3, type: 'paragraph', formats: [] },
+    ],
+  })
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(document.blocks).toHaveLength(3)
+  expect(document.blocks[0]).toMatchObject({ type: 'heading', level: 1, source: '年度工作总结' })
+  expect(document.blocks[1]).toMatchObject({ type: 'heading', level: 2, source: '项目已经进入交付阶段' })
+  expect(document.blocks[2]).toMatchObject({ type: 'paragraph', source: '核心功能已经完成。风险仍需跟踪。' })
 })

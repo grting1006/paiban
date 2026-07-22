@@ -1,6 +1,7 @@
 import { z } from 'zod'
-import { documentSourceText, preserveUncertainFormatting } from '../../src/document/normalize'
+import { hasSourceFidelity, preserveUncertainFormatting } from '../../src/document/normalize'
 import type { DocumentBlock, InlineContent, InlineMark, LayoutDocument } from '../../src/document/types'
+import { sourceUnits } from './units'
 
 const formatDecisionSchema = z.object({
   source: z.string().min(2),
@@ -9,7 +10,8 @@ const formatDecisionSchema = z.object({
 }).strict()
 
 const blockPlanSchema = z.object({
-  index: z.number().int().nonnegative(),
+  start: z.number().int().nonnegative(),
+  end: z.number().int().nonnegative(),
   type: z.enum(['heading', 'paragraph', 'quote', 'list', 'code', 'math', 'table', 'callout', 'divider']),
   level: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
   ordered: z.boolean().optional(),
@@ -27,29 +29,30 @@ type FormatDecision = z.infer<typeof formatDecisionSchema>
 
 export function buildDeterministicLayoutPlan(sourceText: string): LayoutPlan {
   return {
-    blocks: sourceText.split('\n\n').map((source, index) => {
+    blocks: sourceUnits(sourceText).map(({ index, source }) => {
       const trimmed = source.trimStart()
       const heading = trimmed.match(/^(#{1,5})[ \t]+/)
-      if (heading) return { index, type: 'heading' as const, level: heading[1].length as 1 | 2 | 3 | 4 | 5, formats: [] }
-      if (/^```/.test(trimmed)) return { index, type: 'code' as const, formats: [], language: trimmed.match(/^```([^\n]*)/)?.[1] || undefined }
-      if (/^(?:\$\$|\\\[)/.test(trimmed)) return { index, type: 'math' as const, formats: [] }
-      if (/^>[ \t]?/m.test(trimmed)) return { index, type: 'quote' as const, formats: [] }
+      if (heading) return { start: index, end: index, type: 'heading' as const, level: heading[1].length as 1 | 2 | 3 | 4 | 5, formats: [] }
+      if (/^```/.test(trimmed)) return { start: index, end: index, type: 'code' as const, formats: [], language: trimmed.match(/^```([^\n]*)/)?.[1] || undefined }
+      if (/^(?:\$\$|\\\[)/.test(trimmed)) return { start: index, end: index, type: 'math' as const, formats: [] }
+      if (/^>[ \t]?/m.test(trimmed)) return { start: index, end: index, type: 'quote' as const, formats: [] }
 
       const lines = source.split('\n').filter((line) => line.trim())
       const isList = lines.length > 0 && lines.every((line) => /^\s*(?:[-+*]|\d+[.)]|[a-zA-Z][.)])[ \t]+/.test(line))
       if (isList) {
         return {
-          index,
+          start: index,
+          end: index,
           type: 'list' as const,
           ordered: /^\s*(?:\d+|[a-zA-Z])[.)]/.test(lines[0]),
           formats: [],
         }
       }
       if (lines.length >= 2 && lines.every((line) => /^\s*\|.*\|\s*$/.test(line))) {
-        return { index, type: 'table' as const, formats: [] }
+        return { start: index, end: index, type: 'table' as const, formats: [] }
       }
-      if (/^\s*(?:---+|___+|\*\*\*+)\s*$/.test(source)) return { index, type: 'divider' as const, formats: [] }
-      return { index, type: 'paragraph' as const, formats: [] }
+      if (/^\s*(?:---+|___+|\*\*\*+)\s*$/.test(source)) return { start: index, end: index, type: 'divider' as const, formats: [] }
+      return { start: index, end: index, type: 'paragraph' as const, formats: [] }
     }),
   }
 }
@@ -225,11 +228,27 @@ function buildBlock(source: string, index: number, plan?: LayoutPlan['blocks'][n
 }
 
 export function buildDocumentFromPlan(sourceText: string, plan: LayoutPlan): LayoutDocument {
-  const sources = sourceText.split('\n\n')
-  const plansByIndex = new Map(plan.blocks.map((block) => [block.index, block]))
-  const blocks = sources.map((source, index) => buildBlock(source, index, plansByIndex.get(index)))
+  const units = sourceUnits(sourceText)
+  const plannedRanges = [...plan.blocks].sort((left, right) => left.start - right.start)
+  const blocks: DocumentBlock[] = []
+  let cursor = 0
+
+  const appendBlock = (start: number, end: number, blockPlan?: LayoutPlan['blocks'][number]) => {
+    if (start < 0 || end < start || end >= units.length) throw new Error('Invalid source unit range')
+    const source = sourceText.slice(units[start].start, units[end].end)
+    blocks.push(buildBlock(source, blocks.length, blockPlan))
+  }
+
+  for (const blockPlan of plannedRanges) {
+    if (blockPlan.start < cursor) throw new Error('Overlapping source unit ranges')
+    if (blockPlan.start > cursor) appendBlock(cursor, blockPlan.start - 1)
+    appendBlock(blockPlan.start, blockPlan.end, blockPlan)
+    cursor = blockPlan.end + 1
+  }
+  if (cursor < units.length) appendBlock(cursor, units.length - 1)
+
   const document: LayoutDocument = { version: 1, sourceText, meta: {}, blocks }
 
-  if (documentSourceText(blocks) !== sourceText) throw new Error('Document builder did not preserve source text')
+  if (!hasSourceFidelity(document)) throw new Error('Document builder did not preserve source text')
   return document
 }

@@ -17,7 +17,13 @@ export function documentSourceText(blocks: DocumentBlock[]) {
 }
 
 export function hasSourceFidelity(document: LayoutDocument) {
-  return document.sourceText === documentSourceText(document.blocks)
+  let cursor = 0
+  for (const block of document.blocks) {
+    const blockStart = document.sourceText.indexOf(block.source, cursor)
+    if (blockStart === -1 || document.sourceText.slice(cursor, blockStart).trim()) return false
+    cursor = blockStart + block.source.length
+  }
+  return !document.sourceText.slice(cursor).trim()
 }
 
 export function preserveUncertainFormatting(source: string): InlineContent[] {
