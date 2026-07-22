@@ -7,6 +7,7 @@ import { StatusBar } from './components/StatusBar'
 import { sampleDocument, sampleSourceText } from './content/sampleDocument'
 import { useHistoryState } from './hooks/useHistoryState'
 import { requestLayout } from './services/layoutApi'
+import { downloadPaperAsPdf } from './services/pdfExport'
 import { initialSettings, type DocumentSettings, type LayoutPhase } from './workbench'
 
 export default function App() {
@@ -14,8 +15,10 @@ export default function App() {
   const [document, setDocument] = useState(sampleDocument)
   const [sourceText, setSourceText] = useState(sampleSourceText)
   const [layoutPhase, setLayoutPhase] = useState<LayoutPhase>('idle')
+  const [isExporting, setIsExporting] = useState(false)
   const timers = useRef<number[]>([])
   const activeRequest = useRef<AbortController | null>(null)
+  const paperRef = useRef<HTMLElement>(null)
 
   useEffect(() => () => {
     timers.current.forEach(window.clearTimeout)
@@ -48,6 +51,16 @@ export default function App() {
     }
   }, [layoutPhase, sourceText])
 
+  const exportPdf = useCallback(async () => {
+    if (isExporting || !paperRef.current) return
+    setIsExporting(true)
+    try {
+      await downloadPaperAsPdf(paperRef.current)
+    } finally {
+      setIsExporting(false)
+    }
+  }, [isExporting])
+
   return (
     <div className="workbench" data-testid="workbench-shell" data-layout-phase={layoutPhase}>
       <AppHeader
@@ -55,14 +68,15 @@ export default function App() {
         canStartLayout={Boolean(sourceText.trim())}
         canUndo={canUndo}
         canRedo={canRedo}
+        isExporting={isExporting}
         onStartLayout={startLayout}
         onUndo={undo}
         onRedo={redo}
-        onExport={() => window.print()}
+        onExport={exportPdf}
       />
       <main className="workbench__main">
         <SourcePanel value={sourceText} onChange={setSourceText} />
-        <PreviewPanel document={document} settings={settings} phase={layoutPhase} onZoomChange={(zoom) => updateSettings({ zoom })} />
+        <PreviewPanel document={document} settings={settings} phase={layoutPhase} paperRef={paperRef} onZoomChange={(zoom) => updateSettings({ zoom })} />
         <InspectorPanel settings={settings} onChange={updateSettings} />
       </main>
       <StatusBar phase={layoutPhase} />

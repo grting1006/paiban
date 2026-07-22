@@ -105,6 +105,8 @@ function safeFormatDecisions(source: string): FormatDecision[] {
   }
 
   collect(/\*\*([^*\n]+)\*\*/g, 'bold')
+  collect(/(?<!\*)\*([^*\n]+)\*\*(?!\*)/g, 'bold')
+  collect(/(?<!\*)\*\*([^*\n]+)\*(?!\*)/g, 'bold')
   collect(/(?<!\*)\*(?!\*)([^*\n]+)(?<!\*)\*(?!\*)/g, 'italic')
   collect(/~~([^~\n]+)~~/g, 'strikethrough')
   collect(/`([^`\n]+)`/g, 'code')
@@ -137,6 +139,12 @@ function recognizedContent(decision: FormatDecision): { text: string; marks?: In
   const source = decision.source
   if (decision.kind === 'bold' && source.startsWith('**') && source.endsWith('**') && source.length > 4) {
     return { text: source.slice(2, -2), marks: ['bold'] }
+  }
+  if (decision.kind === 'bold' && source.startsWith('*') && !source.startsWith('**') && source.endsWith('**') && source.length > 3) {
+    return { text: source.slice(1, -2), marks: ['bold'] }
+  }
+  if (decision.kind === 'bold' && source.startsWith('**') && source.endsWith('*') && !source.endsWith('**') && source.length > 3) {
+    return { text: source.slice(2, -1), marks: ['bold'] }
   }
   if (decision.kind === 'italic' && source.startsWith('*') && source.endsWith('*') && !source.startsWith('**') && source.length > 2) {
     return { text: source.slice(1, -1), marks: ['italic'] }

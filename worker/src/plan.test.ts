@@ -91,6 +91,23 @@ test('recognizes unambiguous inline formatting when the model omits it', () => {
   }
 })
 
+test('removes asymmetric bold markers left after a spaced list bullet', () => {
+  const source = '* *正向比较**与过度攀比\n* *对立统一关系**。正文保持不变。'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [{ start: 0, end: 1, type: 'list', ordered: false, formats: [] }],
+  })
+  const list = document.blocks[0]
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(list.type).toBe('list')
+  if (list.type === 'list') {
+    expect(list.items[0].marker).toBe('*')
+    expect(list.items[0].content).toContainEqual(expect.objectContaining({ text: '正向比较', marks: ['bold'] }))
+    expect(list.items[1].content).toContainEqual(expect.objectContaining({ text: '对立统一关系', marks: ['bold'] }))
+    expect(list.items.flatMap((item) => item.content).filter((item) => item.type === 'text').map((item) => item.text).join('')).not.toContain('*')
+  }
+})
+
 test('builds semantic ranges without blank lines or formatting markers', () => {
   const source = '年度工作总结\n项目已经进入交付阶段\n核心功能已经完成。\n风险仍需跟踪。'
   const document = buildDocumentFromPlan(source, {

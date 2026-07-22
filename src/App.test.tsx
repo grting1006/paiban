@@ -4,6 +4,7 @@ import { expect, test, vi } from 'vitest'
 import App from './App'
 import { sampleDocument } from './content/sampleDocument'
 import { hasSourceFidelity, inlineSourceText } from './document/normalize'
+import * as pdfExport from './services/pdfExport'
 
 test('renders the complete desktop workbench shell', () => {
   render(<App />)
@@ -80,8 +81,8 @@ test('sends the source to the layout service and renders the accepted document',
   vi.unstubAllGlobals()
 })
 
-test('updates the accent locally and sends export to browser print', () => {
-  const print = vi.spyOn(window, 'print').mockImplementation(() => undefined)
+test('updates the accent locally and downloads the rendered paper as PDF', async () => {
+  const download = vi.spyOn(pdfExport, 'downloadPaperAsPdf').mockResolvedValue(undefined)
   render(<App />)
 
   fireEvent.click(screen.getByRole('button', { name: '颜色 #df6c55' }))
@@ -89,8 +90,10 @@ test('updates the accent locally and sends export to browser print', () => {
   expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled()
 
   fireEvent.click(screen.getByRole('button', { name: '导出 PDF' }))
-  expect(print).toHaveBeenCalledOnce()
-  print.mockRestore()
+  expect(await screen.findByRole('button', { name: '导出 PDF' })).toBeEnabled()
+  expect(download).toHaveBeenCalledOnce()
+  expect(download.mock.calls[0][0]).toHaveClass('paper')
+  download.mockRestore()
 })
 
 test('locks the approved desktop-only three-column layout', () => {

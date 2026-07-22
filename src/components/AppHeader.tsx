@@ -6,13 +6,14 @@ interface AppHeaderProps {
   canStartLayout: boolean
   canUndo: boolean
   canRedo: boolean
+  isExporting: boolean
   onStartLayout: () => void
   onUndo: () => void
   onRedo: () => void
   onExport: () => void
 }
 
-export function AppHeader({ phase, canStartLayout, canUndo, canRedo, onStartLayout, onUndo, onRedo, onExport }: AppHeaderProps) {
+export function AppHeader({ phase, canStartLayout, canUndo, canRedo, isExporting, onStartLayout, onUndo, onRedo, onExport }: AppHeaderProps) {
   const layoutLabel = phase === 'running' ? '排版中' : phase === 'done' ? '已完成' : phase === 'error' ? '重试排版' : '开始排版'
 
   return (
@@ -26,7 +27,10 @@ export function AppHeader({ phase, canStartLayout, canUndo, canRedo, onStartLayo
       <span className="app-header__spacer" />
       <button className="icon-button" aria-label="撤销" title="撤销" onClick={onUndo} disabled={!canUndo}><Undo2 size={16} /></button>
       <button className="icon-button" aria-label="重做" title="重做" onClick={onRedo} disabled={!canRedo}><Redo2 size={16} /></button>
-      <button className="command-button command-button--primary" onClick={onExport}><Download size={15} />导出 PDF</button>
+      <button className={`command-button command-button--primary${isExporting ? ' command-button--loading' : ''}`} onClick={onExport} disabled={isExporting}>
+        {isExporting ? <LoaderCircle size={15} /> : <Download size={15} />}
+        {isExporting ? '生成中' : '导出 PDF'}
+      </button>
     </header>
   )
 }
