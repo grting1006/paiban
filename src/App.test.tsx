@@ -114,6 +114,8 @@ test('locks fixed typography while leaving only the accent customizable', () => 
   expect(styles).toContain('font-style: normal')
   expect(styles).toContain('background: transparent')
   expect(styles).toContain('font-weight: 700')
+  expect(styles).toContain('font-size: calc(var(--body-size) * 1.8)')
+  expect(styles).toContain('text-align: left')
   expect(screen.queryByText('版式模板')).not.toBeInTheDocument()
   expect(screen.queryByText('正文样式')).not.toBeInTheDocument()
 })

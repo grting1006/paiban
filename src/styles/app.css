@@ -221,11 +221,11 @@
 .document-content h2 { font-family: Arial, Helvetica, "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
 .document-content h3,
 .document-content h4 { font-family: "Times New Roman", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", STSong, serif; }
-.document-content h1 { margin: 0 0 1em; font-size: calc(var(--body-size) * 1.6); line-height: 1.3; text-align: center; letter-spacing: 0; }
+.document-content h1 { margin: 0 0 1em; font-size: calc(var(--body-size) * 1.8); line-height: 1.3; text-align: left; letter-spacing: 0; }
 .document-content h2 { margin: 1.2em 0 .6em; font-size: calc(var(--body-size) * 1.3); line-height: 1.35; letter-spacing: 0; }
 .document-content h3 { margin: .8em 0 .3em; font-size: calc(var(--body-size) * 1.15); line-height: 1.35; letter-spacing: 0; }
 .document-content h4 { margin: 0; font-size: var(--body-size); line-height: var(--body-leading); letter-spacing: 0; }
-.document-content h5 { margin: 0; font-family: KaiTi, STKaiti, serif; font-size: var(--body-size); font-weight: 400; line-height: var(--body-leading); letter-spacing: 0; }
+.document-content h5 { margin: 0; font-family: KaiTi, STKaiti, serif; font-size: var(--body-size); font-weight: 700; line-height: var(--body-leading); letter-spacing: 0; }
 .paper p { margin: 0 0 .4em; color: #3f4a50; font-size: var(--body-size); line-height: var(--body-leading); text-align: justify; text-indent: 2em; orphans: 2; widows: 2; }
 .paper blockquote { margin: .5em 2em; padding: 0 0 0 1em; border-left: 1px solid var(--accent); background: transparent; color: #4d5961; font-family: "Times New Roman", "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", STSong, serif; font-size: var(--body-size); font-style: normal; line-height: var(--body-leading); break-inside: avoid; orphans: 2; widows: 2; }
 .paper blockquote cite { display: block; margin-top: .5em; color: var(--subtle); font-size: calc(var(--body-size) - .5px); font-style: normal; text-align: right; }

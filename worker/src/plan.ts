@@ -69,6 +69,7 @@ function safeFormatDecisions(source: string): FormatDecision[] {
   }
 
   collect(/\*\*([^*\n]+)\*\*/g, 'bold')
+  collect(/(?<!\*)\*(?!\*)([^*\n]+)(?<!\*)\*(?!\*)/g, 'italic')
   collect(/~~([^~\n]+)~~/g, 'strikethrough')
   collect(/`([^`\n]+)`/g, 'code')
   collect(/(?<!\$)\$(?!\$)([^$\n]+)(?<!\$)\$(?!\$)/g, 'math', (inner) => /[\\=^_{}]|[A-Za-z]\s*=|\d\s*[+*/-]/.test(inner))

@@ -67,7 +67,7 @@ test('preserves ordered list nesting and confirmed inline formatting', () => {
 })
 
 test('recognizes unambiguous inline formatting when the model omits it', () => {
-  const source = '这是**重点**，公式为 $E=mc^2$，价格 $5 and $10 保持原样。'
+  const source = '这是**重点**，也有*斜体*，公式为 $E=mc^2$，价格 $5 and $10 保持原样。'
   const document = buildDocumentFromPlan(source, {
     blocks: [{ index: 0, type: 'paragraph', formats: [] }],
   })
@@ -76,6 +76,7 @@ test('recognizes unambiguous inline formatting when the model omits it', () => {
   expect(paragraph.type).toBe('paragraph')
   if (paragraph.type === 'paragraph') {
     expect(paragraph.content).toContainEqual(expect.objectContaining({ type: 'text', text: '重点', marks: ['bold'] }))
+    expect(paragraph.content).toContainEqual(expect.objectContaining({ type: 'text', text: '斜体', marks: ['italic'] }))
     expect(paragraph.content).toContainEqual(expect.objectContaining({ type: 'math', latex: 'E=mc^2' }))
     expect(paragraph.content).toContainEqual(expect.objectContaining({ type: 'text', text: '，价格 $5 and $10 保持原样。' }))
   }
