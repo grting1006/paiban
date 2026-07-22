@@ -10,9 +10,10 @@ interface DocumentRendererProps {
 interface FormulaProps {
   latex: string
   displayMode?: boolean
+  className?: string
 }
 
-function Formula({ latex, displayMode = false }: FormulaProps) {
+function Formula({ latex, displayMode = false, className }: FormulaProps) {
   const html = katex.renderToString(latex, {
     displayMode,
     output: 'htmlAndMathml',
@@ -22,7 +23,7 @@ function Formula({ latex, displayMode = false }: FormulaProps) {
   })
 
   const Tag = displayMode ? 'div' : 'span'
-  return <Tag className={displayMode ? 'document-math document-math--block' : 'document-math'} dangerouslySetInnerHTML={{ __html: html }} />
+  return <Tag className={[displayMode ? 'document-math document-math--block' : 'document-math', className].filter(Boolean).join(' ')} dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 function applyMarks(content: ReactNode, marks: InlineMark[] = []) {
@@ -44,10 +45,18 @@ function InlineRenderer({ content }: { content: InlineContent[] }) {
   })
 }
 
-function ListRenderer({ ordered, items }: { ordered: boolean; items: ListItem[] }) {
+function bodyBlockClass(sectionLevel: number) {
+  return sectionLevel > 0 ? `document-body-block document-body-block--level-${sectionLevel}` : undefined
+}
+
+function ListRenderer({ ordered, items, className }: { ordered: boolean; items: ListItem[]; className?: string }) {
   const List = ordered ? 'ol' : 'ul'
-  return <List>{items.map((item, index) => <li key={index}>
-    <InlineRenderer content={item.content} />
+  const hasSourceMarkers = items.some((item) => item.marker)
+  return <List className={[className, hasSourceMarkers ? 'document-list--source-markers' : ''].filter(Boolean).join(' ')}>{items.map((item, index) => <li key={index}>
+    <div className="document-list__line">
+      {item.marker ? <span className="document-list__marker">{item.marker}</span> : null}
+      <span><InlineRenderer content={item.content} /></span>
+    </div>
     {item.children ? <ListRenderer ordered={item.children.ordered} items={item.children.items} /> : null}
   </li>)}</List>
 }
@@ -56,37 +65,43 @@ function isNumericCell(content: InlineContent[]) {
   return /^[\s¥￥$€£+\-()\d,.%]+$/.test(inlineVisibleText(content))
 }
 
-function renderBlock(block: DocumentBlock) {
+function renderBlock(block: DocumentBlock, sectionLevel: number) {
+  const className = bodyBlockClass(sectionLevel)
   if (block.type === 'heading') {
     const Heading = `h${block.level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5'
     return <Heading key={block.id}><InlineRenderer content={block.content} /></Heading>
   }
-  if (block.type === 'paragraph') return <p key={block.id}><InlineRenderer content={block.content} /></p>
+  if (block.type === 'paragraph') return <p className={className} key={block.id}><InlineRenderer content={block.content} /></p>
   if (block.type === 'quote') {
-    return <blockquote key={block.id}>
+    return <blockquote className={className} key={block.id}>
       <InlineRenderer content={block.content} />
       {block.attribution ? <cite><InlineRenderer content={block.attribution} /></cite> : null}
     </blockquote>
   }
   if (block.type === 'list') {
-    return <ListRenderer key={block.id} ordered={block.ordered} items={block.items} />
+    return <ListRenderer className={className} key={block.id} ordered={block.ordered} items={block.items} />
   }
-  if (block.type === 'code') return <pre key={block.id}><code data-language={block.language}>{block.code}</code></pre>
-  if (block.type === 'math') return <Formula key={block.id} latex={block.latex} displayMode />
+  if (block.type === 'code') return <pre className={className} key={block.id}><code data-language={block.language}>{block.code}</code></pre>
+  if (block.type === 'math') return <Formula className={className} key={block.id} latex={block.latex} displayMode />
   if (block.type === 'table') {
-    return <table key={block.id}>
+    return <table className={className} key={block.id}>
       <thead><tr>{block.headers.map((header, index) => <th key={`${block.id}-header-${index}`}><InlineRenderer content={header} /></th>)}</tr></thead>
       <tbody>{block.rows.map((row, rowIndex) => <tr key={`${block.id}-row-${rowIndex}`}>{row.map((cell, cellIndex) => <td className={isNumericCell(cell) ? 'is-numeric' : undefined} key={`${block.id}-${rowIndex}-${cellIndex}`}><InlineRenderer content={cell} /></td>)}</tr>)}</tbody>
     </table>
   }
-  if (block.type === 'callout') return <aside className={`document-callout document-callout--${block.tone}`} key={block.id}><InlineRenderer content={block.content} /></aside>
+  if (block.type === 'callout') return <aside className={`document-callout document-callout--${block.tone} ${className ?? ''}`} key={block.id}><InlineRenderer content={block.content} /></aside>
   return <hr key={block.id} />
 }
 
 export function DocumentRenderer({ document }: DocumentRendererProps) {
+  let sectionLevel = 0
+  const blocks = document.blocks.map((block) => {
+    if (block.type === 'heading') sectionLevel = block.level
+    return renderBlock(block, sectionLevel)
+  })
   return <>
     {document.meta.category ? <div className="paper__kicker">{document.meta.category}</div> : null}
     {document.meta.description ? <div className="paper__deck">{document.meta.description}</div> : null}
-    <div className="document-content">{document.blocks.map(renderBlock)}</div>
+    <div className="document-content">{blocks}</div>
   </>
 }

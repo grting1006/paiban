@@ -7,6 +7,23 @@ export interface SourceUnit {
 
 const optionalBreaks = new Set(['：', ':'])
 
+function protectedFormattingRanges(source: string) {
+  const ranges: Array<{ start: number; end: number }> = []
+  const patterns = [
+    /\*\*[^*\n]+\*\*/g,
+    /(?<!\*)\*(?!\*)[^*\n]+\*(?!\*)/g,
+    /~~[^~\n]+~~/g,
+    /`[^`\n]+`/g,
+    /\$\$[^$\n]+\$\$/g,
+    /(?<!\$)\$(?!\$)[^$\n]+\$(?!\$)/g,
+    /\\\([^\n]+\\\)/g,
+  ]
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) ranges.push({ start: match.index, end: match.index + match[0].length })
+  }
+  return ranges
+}
+
 export function sourceUnits(sourceText: string): SourceUnit[] {
   const units: SourceUnit[] = []
 
@@ -14,6 +31,7 @@ export function sourceUnits(sourceText: string): SourceUnit[] {
     const line = lineMatch[0]
     const lineStart = lineMatch.index
     let segmentStart = 0
+    const protectedRanges = protectedFormattingRanges(line)
 
     const pushSegment = (segmentEnd: number) => {
       const source = line.slice(segmentStart, segmentEnd)
@@ -29,7 +47,8 @@ export function sourceUnits(sourceText: string): SourceUnit[] {
     }
 
     for (let cursor = 0; cursor < line.length; cursor += 1) {
-      if (optionalBreaks.has(line[cursor])) pushSegment(cursor + 1)
+      const isProtected = protectedRanges.some((range) => cursor >= range.start && cursor < range.end)
+      if (optionalBreaks.has(line[cursor]) && !isProtected) pushSegment(cursor + 1)
     }
     if (segmentStart < line.length) pushSegment(line.length)
   }

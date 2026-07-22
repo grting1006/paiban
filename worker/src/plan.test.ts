@@ -116,6 +116,10 @@ test('only creates optional boundaries at source line breaks and colons', () => 
     { index: 0, source: '主题：' },
     { index: 1, source: '正文保持在同一段。' },
   ])
+  expect(sourceUnits('说明：**术语：定义**保持完整')).toMatchObject([
+    { index: 0, source: '说明：' },
+    { index: 1, source: '**术语：定义**保持完整' },
+  ])
 })
 
 test('demotes every heading level when a plan contains multiple document titles', () => {
@@ -136,7 +140,7 @@ test('demotes every heading level when a plan contains multiple document titles'
 })
 
 test('merges adjacent ordered list ranges so numbering does not restart', () => {
-  const source = '1. 第一项\n2. 第二项\n3. 第三项'
+  const source = '1. 第一项\n3) 第二项\n五、第三项'
   const document = buildDocumentFromPlan(source, {
     blocks: [
       { start: 0, end: 0, type: 'list', ordered: true, formats: [] },
@@ -147,7 +151,11 @@ test('merges adjacent ordered list ranges so numbering does not restart', () => 
 
   expect(hasSourceFidelity(document)).toBe(true)
   expect(document.blocks).toHaveLength(1)
-  expect(document.blocks[0]).toMatchObject({ type: 'list', ordered: true, items: [{}, {}, {}] })
+  expect(document.blocks[0]).toMatchObject({
+    type: 'list',
+    ordered: true,
+    items: [{ marker: '1.' }, { marker: '3)' }, { marker: '五、' }],
+  })
 })
 
 test('keeps an obvious heading hierarchy when AI providers are unavailable', () => {

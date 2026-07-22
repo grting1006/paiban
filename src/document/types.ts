@@ -45,6 +45,7 @@ export interface QuoteBlock extends SourceBlock {
 }
 
 export interface ListItem {
+  marker?: string
   content: InlineContent[]
   children?: {
     ordered: boolean

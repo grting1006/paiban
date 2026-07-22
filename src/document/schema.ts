@@ -53,6 +53,7 @@ const listItemSchema: z.ZodType<{
   content: z.infer<typeof inlineArraySchema>
   children?: { ordered: boolean; items: unknown[] }
 }> = z.lazy(() => z.object({
+  marker: z.string().optional(),
   content: inlineArraySchema,
   children: z.object({
     ordered: z.boolean(),

@@ -27,6 +27,12 @@ export const layoutPlanSchema = z.object({
 export type LayoutPlan = z.infer<typeof layoutPlanSchema>
 type FormatDecision = z.infer<typeof formatDecisionSchema>
 
+const listLinePattern = /^([ \t]*)((?:[-+*•·])|(?:(?:\d+|[a-zA-Z]|[一二三四五六七八九十]+)[.)、）])|(?:[（(](?:\d+|[a-zA-Z]|[一二三四五六七八九十]+)[）)])|[①-⑳])[ \t]*(.*)$/
+
+function isOrderedMarker(marker: string) {
+  return !/^[-+*•·]$/.test(marker)
+}
+
 function normalizeHeadingLevels(plan: LayoutPlan): LayoutPlan {
   const hasMultipleDocumentTitles = plan.blocks.filter((block) => block.type === 'heading' && block.level === 1).length > 1
   if (!hasMultipleDocumentTitles) return plan
@@ -61,13 +67,14 @@ export function buildDeterministicLayoutPlan(sourceText: string): LayoutPlan {
       if (/^>[ \t]?/m.test(trimmed)) return { start: index, end: index, type: 'quote' as const, formats: [] }
 
       const lines = source.split('\n').filter((line) => line.trim())
-      const isList = lines.length > 0 && lines.every((line) => /^\s*(?:[-+*]|\d+[.)]|[a-zA-Z][.)])[ \t]+/.test(line))
+      const isList = lines.length > 0 && lines.every((line) => listLinePattern.test(line))
       if (isList) {
+        const marker = lines[0].match(listLinePattern)?.[2] ?? '-'
         return {
           start: index,
           end: index,
           type: 'list' as const,
-          ordered: /^\s*(?:\d+|[a-zA-Z])[.)]/.test(lines[0]),
+          ordered: isOrderedMarker(marker),
           formats: [],
         }
       }
@@ -193,9 +200,9 @@ function occurrencesBefore(value: string, search: string, end: number) {
 function listItems(source: string, decisions: FormatDecision[]) {
   let sourceOffset = 0
   const lines = source.split('\n').map((line) => {
-    const match = line.match(/^([ \t]*)([-+*]|\d+[.)]|[a-zA-Z][.)])[ \t]+(.*)$/)
+    const match = line.match(listLinePattern)
     const indent = match?.[1].replace(/\t/g, '  ').length ?? 0
-    const marker = match?.[2] ?? '-'
+    const marker = match?.[2]
     const value = match?.[3] ?? line
     const contentStart = sourceOffset + line.length - value.length
     const lineDecisions = decisions.flatMap((decision) => {
@@ -209,7 +216,8 @@ function listItems(source: string, decisions: FormatDecision[]) {
     sourceOffset += line.length + 1
     return {
       indent,
-      ordered: /^(?:\d+|[a-zA-Z])[.)]$/.test(marker),
+      marker,
+      ordered: marker ? isOrderedMarker(marker) : false,
       content: inlineContent(value, lineDecisions),
     }
   })
@@ -220,9 +228,9 @@ function listItems(source: string, decisions: FormatDecision[]) {
     if (line.indent > baseIndent && items.length) {
       const parent = items[items.length - 1]
       parent.children ??= { ordered: line.ordered, items: [] }
-      parent.children.items.push({ content: line.content })
+      parent.children.items.push({ marker: line.marker, content: line.content })
     } else {
-      items.push({ content: line.content })
+      items.push({ marker: line.marker, content: line.content })
     }
   }
   return items
@@ -241,7 +249,10 @@ function buildBlock(source: string, index: number, plan?: LayoutPlan['blocks'][n
 
   if (type === 'heading') return { id, type, source, level: plan?.level ?? 2, content: inlineContent(withoutHeadingMarker(source), formats) }
   if (type === 'quote') return { id, type, source, content: inlineContent(withoutQuoteMarker(source), formats) }
-  if (type === 'list') return { id, type, source, ordered: plan?.ordered ?? /^\s*(?:\d+|[a-zA-Z])[.)]/.test(source), items: listItems(source, formats) }
+  if (type === 'list') {
+    const marker = source.match(listLinePattern)?.[2]
+    return { id, type, source, ordered: plan?.ordered ?? Boolean(marker && isOrderedMarker(marker)), items: listItems(source, formats) }
+  }
   if (type === 'code') return { id, type, source, language: plan?.language, code: source.replace(/^```[^\n]*\n?|\n?```$/g, '') }
   if (type === 'math') return { id, type, source, latex: source.replace(/^\$\$|\$\$$/g, '').replace(/^\\\[|\\\]$/g, '') }
   if (type === 'table') {
