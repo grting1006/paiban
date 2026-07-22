@@ -1,7 +1,9 @@
-import { createLayoutDocument, LayoutGenerationError } from './zhipu'
+import { createLayoutDocumentWithFallback } from './fallback'
+import { errorCode } from './generation'
 
 interface Env {
-  ZHIPU_API_KEY: string
+  ZHIPU_API_KEY?: string
+  OPENROUTER_API_KEY?: string
   ALLOWED_ORIGINS: string
 }
 
@@ -65,15 +67,18 @@ export default {
       return json({ error: 'Source text must contain 1 to 50000 characters' }, 400, origin)
     }
 
-    if (!env.ZHIPU_API_KEY) {
+    if (!env.ZHIPU_API_KEY && !env.OPENROUTER_API_KEY) {
       return json({ error: 'Service is not configured' }, 503, origin)
     }
 
     try {
-      const document = await createLayoutDocument(sourceText, env.ZHIPU_API_KEY)
+      const document = await createLayoutDocumentWithFallback(sourceText, {
+        zhipu: env.ZHIPU_API_KEY,
+        openRouter: env.OPENROUTER_API_KEY,
+      })
       return json(document, 200, origin)
     } catch (error) {
-      const code = error instanceof LayoutGenerationError ? error.code : error instanceof Error && error.name === 'TimeoutError' ? 'upstream_timeout' : 'unknown'
+      const code = errorCode(error)
       console.error('Layout generation failed', code)
       return json({ error: 'Layout generation failed', code }, 502, origin)
     }
