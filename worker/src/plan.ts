@@ -27,6 +27,16 @@ export const layoutPlanSchema = z.object({
 export type LayoutPlan = z.infer<typeof layoutPlanSchema>
 type FormatDecision = z.infer<typeof formatDecisionSchema>
 
+function normalizeHeadingLevels(plan: LayoutPlan): LayoutPlan {
+  const hasMultipleDocumentTitles = plan.blocks.filter((block) => block.type === 'heading' && block.level === 1).length > 1
+  if (!hasMultipleDocumentTitles) return plan
+  return {
+    blocks: plan.blocks.map((block) => block.type === 'heading'
+      ? { ...block, level: Math.min((block.level ?? 2) + 1, 5) as 1 | 2 | 3 | 4 | 5 }
+      : block),
+  }
+}
+
 function isStandalonePlainHeading(sourceText: string, start: number, end: number, source: string) {
   const text = source.trim()
   const startsLine = start === 0 || sourceText[start - 1] === '\n'
@@ -243,9 +253,29 @@ function buildBlock(source: string, index: number, plan?: LayoutPlan['blocks'][n
   return { id, type: 'paragraph', source, content: inlineContent(source, formats) }
 }
 
+function mergeAdjacentLists(sourceText: string, blocks: DocumentBlock[]) {
+  const merged: DocumentBlock[] = []
+  let cursor = 0
+
+  for (const block of blocks) {
+    const start = sourceText.indexOf(block.source, cursor)
+    const gap = start === -1 ? '' : sourceText.slice(cursor, start)
+    const previous = merged[merged.length - 1]
+    if (previous?.type === 'list' && block.type === 'list' && previous.ordered === block.ordered && !gap.trim()) {
+      previous.source += gap + block.source
+      previous.items.push(...block.items)
+    } else {
+      merged.push(block)
+    }
+    if (start !== -1) cursor = start + block.source.length
+  }
+
+  return merged
+}
+
 export function buildDocumentFromPlan(sourceText: string, plan: LayoutPlan): LayoutDocument {
   const units = sourceUnits(sourceText)
-  const plannedRanges = [...plan.blocks].sort((left, right) => left.start - right.start)
+  const plannedRanges = [...normalizeHeadingLevels(plan).blocks].sort((left, right) => left.start - right.start)
   const blocks: DocumentBlock[] = []
   let cursor = 0
 
@@ -263,7 +293,7 @@ export function buildDocumentFromPlan(sourceText: string, plan: LayoutPlan): Lay
   }
   if (cursor < units.length) appendBlock(cursor, units.length - 1)
 
-  const document: LayoutDocument = { version: 1, sourceText, meta: {}, blocks }
+  const document: LayoutDocument = { version: 1, sourceText, meta: {}, blocks: mergeAdjacentLists(sourceText, blocks) }
 
   if (!hasSourceFidelity(document)) throw new Error('Document builder did not preserve source text')
   return document

@@ -5,8 +5,7 @@ export interface SourceUnit {
   source: string
 }
 
-const sentenceEndings = new Set(['。', '！', '？', '!', '?', '；', ';'])
-const closingPunctuation = new Set(['”', '’', '』', '」', '）', ')', '】', ']', '》'])
+const optionalBreaks = new Set(['：', ':'])
 
 export function sourceUnits(sourceText: string): SourceUnit[] {
   const units: SourceUnit[] = []
@@ -30,11 +29,7 @@ export function sourceUnits(sourceText: string): SourceUnit[] {
     }
 
     for (let cursor = 0; cursor < line.length; cursor += 1) {
-      if (!sentenceEndings.has(line[cursor])) continue
-      let segmentEnd = cursor + 1
-      while (segmentEnd < line.length && closingPunctuation.has(line[segmentEnd])) segmentEnd += 1
-      pushSegment(segmentEnd)
-      cursor = segmentEnd - 1
+      if (optionalBreaks.has(line[cursor])) pushSegment(cursor + 1)
     }
     if (segmentStart < line.length) pushSegment(line.length)
   }

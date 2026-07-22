@@ -92,7 +92,7 @@ test('recognizes unambiguous inline formatting when the model omits it', () => {
 })
 
 test('builds semantic ranges without blank lines or formatting markers', () => {
-  const source = '年度工作总结\n项目已经进入交付阶段\n核心功能已经完成。风险仍需跟踪。'
+  const source = '年度工作总结\n项目已经进入交付阶段\n核心功能已经完成。\n风险仍需跟踪。'
   const document = buildDocumentFromPlan(source, {
     blocks: [
       { start: 0, end: 0, type: 'heading', level: 1, formats: [] },
@@ -105,7 +105,49 @@ test('builds semantic ranges without blank lines or formatting markers', () => {
   expect(document.blocks).toHaveLength(3)
   expect(document.blocks[0]).toMatchObject({ type: 'heading', level: 1, source: '年度工作总结' })
   expect(document.blocks[1]).toMatchObject({ type: 'heading', level: 2, source: '项目已经进入交付阶段' })
-  expect(document.blocks[2]).toMatchObject({ type: 'paragraph', source: '核心功能已经完成。风险仍需跟踪。' })
+  expect(document.blocks[2]).toMatchObject({ type: 'paragraph', source: '核心功能已经完成。\n风险仍需跟踪。' })
+})
+
+test('only creates optional boundaries at source line breaks and colons', () => {
+  expect(sourceUnits('第一句。第二句！第三句？')).toMatchObject([
+    { index: 0, source: '第一句。第二句！第三句？' },
+  ])
+  expect(sourceUnits('主题：正文保持在同一段。')).toMatchObject([
+    { index: 0, source: '主题：' },
+    { index: 1, source: '正文保持在同一段。' },
+  ])
+})
+
+test('demotes every heading level when a plan contains multiple document titles', () => {
+  const source = '第一部分\n第二部分\n下级主题'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [
+      { start: 0, end: 0, type: 'heading', level: 1, formats: [] },
+      { start: 1, end: 1, type: 'heading', level: 1, formats: [] },
+      { start: 2, end: 2, type: 'heading', level: 2, formats: [] },
+    ],
+  })
+
+  expect(document.blocks).toMatchObject([
+    { type: 'heading', level: 2 },
+    { type: 'heading', level: 2 },
+    { type: 'heading', level: 3 },
+  ])
+})
+
+test('merges adjacent ordered list ranges so numbering does not restart', () => {
+  const source = '1. 第一项\n2. 第二项\n3. 第三项'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [
+      { start: 0, end: 0, type: 'list', ordered: true, formats: [] },
+      { start: 1, end: 1, type: 'list', ordered: true, formats: [] },
+      { start: 2, end: 2, type: 'list', ordered: true, formats: [] },
+    ],
+  })
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(document.blocks).toHaveLength(1)
+  expect(document.blocks[0]).toMatchObject({ type: 'list', ordered: true, items: [{}, {}, {}] })
 })
 
 test('keeps an obvious heading hierarchy when AI providers are unavailable', () => {
