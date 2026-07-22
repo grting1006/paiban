@@ -22,7 +22,23 @@ test('exposes the primary local interactions', () => {
   expect(screen.getByRole('button', { name: '导出 PDF' })).toBeEnabled()
   expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled()
   expect(screen.getByRole('button', { name: '颜色 #147d72' })).toHaveAttribute('aria-pressed', 'true')
-  expect(screen.getByRole('region', { name: '原始内容' }).querySelector('[contenteditable="true"]')).toBeInTheDocument()
+  expect(screen.getByRole('textbox', { name: '原始文本' })).toBeInstanceOf(HTMLTextAreaElement)
+})
+
+test('preserves pasted line breaks and writes toolbar formatting into source text', () => {
+  render(<App />)
+  const editor = screen.getByRole('textbox', { name: '原始文本' }) as HTMLTextAreaElement
+
+  fireEvent.change(editor, { target: { value: '标题\n\n正文' } })
+  expect(editor.value).toBe('标题\n\n正文')
+
+  editor.setSelectionRange(0, 2)
+  fireEvent.click(screen.getByRole('button', { name: '一级标题' }))
+  expect(editor.value).toBe('# 标题\n\n正文')
+
+  editor.setSelectionRange(6, 8)
+  fireEvent.click(screen.getByRole('button', { name: '粗体' }))
+  expect(editor.value).toBe('# 标题\n\n**正文**')
 })
 
 test('renders five document levels, rich formatting, and compiled math', () => {

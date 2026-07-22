@@ -142,23 +142,25 @@
 .source-toolbar button:nth-child(3)::before { content: ""; width: 1px; height: 16px; position: absolute; left: -6px; background: var(--line); }
 
 .source-editor {
+  width: 100%;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   padding: 26px 24px;
+  border: 0;
+  border-radius: 0;
+  resize: none;
+  background: var(--paper);
   color: #4e5b65;
   font-family: Georgia, "Songti SC", "STSong", serif;
   font-size: 13px;
   line-height: 1.85;
+  letter-spacing: 0;
   outline: none;
   white-space: pre-wrap;
   transition: box-shadow 160ms ease, background-color 160ms ease;
 }
 
 .source-editor:focus { background: #fcfdfd; box-shadow: inset 3px 0 0 var(--teal); }
-
-.source-editor h1 { margin: 0 0 17px; color: var(--ink); font-size: 24px; line-height: 1.35; letter-spacing: 0; }
-.source-editor h2 { margin: 23px 0 9px; color: var(--ink); font-size: 15px; letter-spacing: 0; }
-.source-editor p { margin: 0 0 11px; font-size: 13px; }
 
 .preview-toolbar {
   height: 46px;
