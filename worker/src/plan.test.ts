@@ -107,13 +107,14 @@ test('protects explicit tables when the model classifies them as paragraphs', ()
 })
 
 test('protects fenced code, quotes, and original list markers from model downgrades', () => {
-  const source = '```ts\nconst value = 1\n```\n> 第一行引用\n> 第二行引用\n1. 第一项\n3) 第三项'
+  const source = '## 代码示例\n```ts\nconst value = 1\n```\n> 第一行引用\n> 第二行引用\n1. 第一项\n3) 第三项'
   const document = buildDocumentFromPlan(source, {
-    blocks: [{ start: 0, end: 6, type: 'paragraph', formats: [] }],
+    blocks: [{ start: 0, end: 7, type: 'code', formats: [] }],
   })
 
   expect(hasSourceFidelity(document)).toBe(true)
   expect(document.blocks).toMatchObject([
+    { type: 'heading', level: 2, source: '## 代码示例' },
     { type: 'code', language: 'ts' },
     { type: 'quote' },
     { type: 'list', ordered: true, items: [{ marker: '1.' }, { marker: '3)' }] },

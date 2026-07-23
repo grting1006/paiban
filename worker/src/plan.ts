@@ -44,6 +44,11 @@ function explicitStructurePlans(units: ReturnType<typeof sourceUnits>): LayoutPl
 
   while (index < units.length) {
     const trimmed = units[index].source.trimStart()
+    const heading = trimmed.match(/^(#{1,5})[ \t]+/)
+    if (heading) {
+      push(index, 'heading', { level: heading[1].length as 1 | 2 | 3 | 4 | 5 })
+      continue
+    }
     if (/^```/.test(trimmed)) {
       let end = index
       while (end + 1 < units.length && !/```\s*$/.test(units[end].source.trimEnd())) end += 1
@@ -87,7 +92,7 @@ function explicitStructurePlans(units: ReturnType<typeof sourceUnits>): LayoutPl
 
 function applyExplicitStructures(units: ReturnType<typeof sourceUnits>, plan: LayoutPlan) {
   const explicit = explicitStructurePlans(units)
-  const modelBlocks = normalizeHeadingLevels(plan).blocks.flatMap((block) => {
+  const modelBlocks = plan.blocks.flatMap((block) => {
     let ranges = [{ start: block.start, end: block.end }]
     for (const protectedRange of explicit) {
       ranges = ranges.flatMap((range) => {
@@ -100,7 +105,7 @@ function applyExplicitStructures(units: ReturnType<typeof sourceUnits>, plan: La
     }
     return ranges.map((range) => ({ ...block, ...range }))
   })
-  return [...modelBlocks, ...explicit].sort((left, right) => left.start - right.start)
+  return normalizeHeadingLevels({ blocks: [...modelBlocks, ...explicit] }).blocks.sort((left, right) => left.start - right.start)
 }
 
 function normalizeHeadingLevels(plan: LayoutPlan): LayoutPlan {

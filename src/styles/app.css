@@ -265,6 +265,7 @@
 .paper th, .paper td { height: 1.5em; padding: .35em .55em; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
 .paper th { background: #f5f6f6; color: var(--ink); font-family: Arial, Helvetica, "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif; font-weight: 700; text-align: center; }
 .paper td.is-numeric { text-align: right; font-variant-numeric: tabular-nums; }
+.paper .pdf-raster-block { object-fit: fill; image-rendering: auto; }
 .paper hr { margin: 16px auto; width: 32%; border: 0; border-top: 1px solid var(--accent); }
 .document-callout { margin: 12px 0; padding: 9px 11px; border: 1px solid color-mix(in srgb, var(--accent) 30%, white); background: color-mix(in srgb, var(--accent) 6%, white); color: #4d5961; font-size: var(--body-size); line-height: var(--body-leading); }
 .document-callout--important { border-left: 3px solid var(--accent); }

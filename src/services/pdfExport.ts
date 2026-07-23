@@ -26,6 +26,8 @@ interface TextFragment {
   bottom: number
 }
 
+type Html2Canvas = typeof import('html2canvas')['default']
+
 export function paginateFlow(flowHeight: number, pageHeight: number, blocks: FlowBlock[]): PageSegment[] {
   if (flowHeight <= 0) return [{ start: 0, end: 0 }]
 
@@ -193,6 +195,39 @@ function collectTextFragments(surface: HTMLElement) {
   return fragments
 }
 
+async function rasterizeComplexBlocks(surface: HTMLElement, html2canvas: Html2Canvas) {
+  const blocks = Array.from(surface.querySelectorAll<HTMLElement>('table, pre'))
+  for (const block of blocks) {
+    const rect = block.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) continue
+    const computed = getComputedStyle(block)
+    const canvas = await html2canvas(block, {
+      backgroundColor: null,
+      height: Math.ceil(rect.height),
+      logging: false,
+      scale: 3,
+      useCORS: true,
+      width: Math.ceil(rect.width),
+    })
+    const image = document.createElement('img')
+    image.alt = ''
+    image.className = 'pdf-raster-block'
+    image.src = canvas.toDataURL('image/png')
+    Object.assign(image.style, {
+      display: 'block',
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      marginTop: computed.marginTop,
+      marginRight: computed.marginRight,
+      marginBottom: computed.marginBottom,
+      marginLeft: computed.marginLeft,
+      maxWidth: 'none',
+    })
+    block.replaceWith(image)
+    await image.decode()
+  }
+}
+
 export function measurePaperPageSegments(element: HTMLElement) {
   const surface = createExportSurface(element)
   try {
@@ -240,6 +275,7 @@ export async function downloadPaperAsPdf(element: HTMLElement, filename = 'æŽ’ç‰
     const { blocks, flowHeight } = measureFlow(surface)
     const segments = paginateFlow(flowHeight, PAGE_CONTENT_HEIGHT_PX, blocks)
     const textFragments = collectTextFragments(surface)
+    await rasterizeComplexBlocks(surface, html2canvas)
     const flowCanvas = await html2canvas(surface, {
       backgroundColor: '#ffffff',
       height: Math.ceil(flowHeight),
