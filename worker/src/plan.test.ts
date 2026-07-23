@@ -91,6 +91,35 @@ test('recognizes unambiguous inline formatting when the model omits it', () => {
   }
 })
 
+test('protects explicit tables when the model classifies them as paragraphs', () => {
+  const source = '| 序号 | 内容 |\n| --- | --- |\n| 1 | 第一项 |\n| 2 | 第二项 |'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [{ start: 0, end: 3, type: 'paragraph', formats: [] }],
+  })
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(document.blocks).toHaveLength(1)
+  expect(document.blocks[0]).toMatchObject({ type: 'table' })
+  if (document.blocks[0].type === 'table') {
+    expect(document.blocks[0].headers).toHaveLength(2)
+    expect(document.blocks[0].rows).toHaveLength(2)
+  }
+})
+
+test('protects fenced code, quotes, and original list markers from model downgrades', () => {
+  const source = '```ts\nconst value = 1\n```\n> 第一行引用\n> 第二行引用\n1. 第一项\n3) 第三项'
+  const document = buildDocumentFromPlan(source, {
+    blocks: [{ start: 0, end: 6, type: 'paragraph', formats: [] }],
+  })
+
+  expect(hasSourceFidelity(document)).toBe(true)
+  expect(document.blocks).toMatchObject([
+    { type: 'code', language: 'ts' },
+    { type: 'quote' },
+    { type: 'list', ordered: true, items: [{ marker: '1.' }, { marker: '3)' }] },
+  ])
+})
+
 test('removes asymmetric bold markers left after a spaced list bullet', () => {
   const source = '* *正向比较**与过度攀比\n* *对立统一关系**。正文保持不变。'
   const document = buildDocumentFromPlan(source, {

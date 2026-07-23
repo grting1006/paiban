@@ -27,6 +27,20 @@ test('moves an orphaned heading to the next page', () => {
   ])
 })
 
+test('keeps a heading with at least two following text lines', () => {
+  const blocks = [
+    { top: 0, bottom: 400, heading: false },
+    { top: 430, bottom: 470, heading: true },
+    { top: 480, bottom: 500, heading: false },
+    { top: 510, bottom: 700, heading: false },
+  ]
+
+  expect(paginateFlow(700, 510, blocks)).toEqual([
+    { start: 0, end: 430 },
+    { start: 430, end: 700 },
+  ])
+})
+
 test('splits a block only when it is taller than a page', () => {
   const blocks = [{ top: 0, bottom: 900, heading: false }]
 

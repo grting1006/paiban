@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, useLayoutEffect, useRef, type ReactNode } from 'react'
 import katex from 'katex'
 import type { DocumentBlock, InlineContent, InlineMark, LayoutDocument, ListItem } from '../document/types'
 import { inlineVisibleText } from '../document/normalize'
@@ -14,6 +14,7 @@ interface FormulaProps {
 }
 
 function Formula({ latex, displayMode = false, className }: FormulaProps) {
+  const formulaRef = useRef<HTMLDivElement>(null)
   const html = katex.renderToString(latex, {
     displayMode,
     output: 'htmlAndMathml',
@@ -22,8 +23,21 @@ function Formula({ latex, displayMode = false, className }: FormulaProps) {
     trust: false,
   })
 
-  const Tag = displayMode ? 'div' : 'span'
-  return <Tag className={[displayMode ? 'document-math document-math--block' : 'document-math', className].filter(Boolean).join(' ')} dangerouslySetInnerHTML={{ __html: html }} />
+  useLayoutEffect(() => {
+    const element = formulaRef.current
+    if (!displayMode || !element) return
+    element.style.fontSize = ''
+    const frame = requestAnimationFrame(() => {
+      const formula = element.querySelector<HTMLElement>('.katex')
+      if (!formula || formula.scrollWidth <= element.clientWidth) return
+      element.style.fontSize = `${Math.max(.62, element.clientWidth / formula.scrollWidth)}em`
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [displayMode, latex])
+
+  const formulaClassName = [displayMode ? 'document-math document-math--block' : 'document-math', className].filter(Boolean).join(' ')
+  if (displayMode) return <div ref={formulaRef} className={formulaClassName} dangerouslySetInnerHTML={{ __html: html }} />
+  return <span className={formulaClassName} dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 function applyMarks(content: ReactNode, marks: InlineMark[] = []) {

@@ -33,6 +33,76 @@ function isOrderedMarker(marker: string) {
   return !/^[-+*•·]$/.test(marker)
 }
 
+function explicitStructurePlans(units: ReturnType<typeof sourceUnits>): LayoutPlan['blocks'] {
+  const blocks: LayoutPlan['blocks'] = []
+  let index = 0
+
+  const push = (end: number, type: LayoutPlan['blocks'][number]['type'], options: Partial<LayoutPlan['blocks'][number]> = {}) => {
+    blocks.push({ start: index, end, type, formats: [], ...options })
+    index = end + 1
+  }
+
+  while (index < units.length) {
+    const trimmed = units[index].source.trimStart()
+    if (/^```/.test(trimmed)) {
+      let end = index
+      while (end + 1 < units.length && !/```\s*$/.test(units[end].source.trimEnd())) end += 1
+      push(end, 'code', { language: trimmed.match(/^```([^\n]*)/)?.[1] || undefined })
+      continue
+    }
+    if (/^(?:\$\$|\\\[)/.test(trimmed)) {
+      let end = index
+      const closes = (source: string) => /(?:\$\$|\\\])\s*$/.test(source.trimEnd())
+      while (end + 1 < units.length && !closes(units[end].source)) end += 1
+      push(end, 'math')
+      continue
+    }
+    if (/^\s*\|.*\|\s*$/.test(units[index].source)) {
+      let end = index
+      while (end + 1 < units.length && /^\s*\|.*\|\s*$/.test(units[end + 1].source)) end += 1
+      const sources = units.slice(index, end + 1).map((unit) => unit.source)
+      if (sources.length >= 2 && sources.some((source) => /^\s*\|?(?:\s*:?-+:?\s*\|)+\s*$/.test(source))) {
+        push(end, 'table')
+        continue
+      }
+    }
+    if (/^>[ \t]?/.test(trimmed)) {
+      let end = index
+      while (end + 1 < units.length && /^>[ \t]?/.test(units[end + 1].source.trimStart())) end += 1
+      push(end, 'quote')
+      continue
+    }
+    const listMatch = units[index].source.match(listLinePattern)
+    if (listMatch) {
+      let end = index
+      while (end + 1 < units.length && listLinePattern.test(units[end + 1].source)) end += 1
+      push(end, 'list', { ordered: isOrderedMarker(listMatch[2]) })
+      continue
+    }
+    index += 1
+  }
+
+  return blocks
+}
+
+function applyExplicitStructures(units: ReturnType<typeof sourceUnits>, plan: LayoutPlan) {
+  const explicit = explicitStructurePlans(units)
+  const modelBlocks = normalizeHeadingLevels(plan).blocks.flatMap((block) => {
+    let ranges = [{ start: block.start, end: block.end }]
+    for (const protectedRange of explicit) {
+      ranges = ranges.flatMap((range) => {
+        if (range.end < protectedRange.start || range.start > protectedRange.end) return [range]
+        return [
+          ...(range.start < protectedRange.start ? [{ start: range.start, end: protectedRange.start - 1 }] : []),
+          ...(range.end > protectedRange.end ? [{ start: protectedRange.end + 1, end: range.end }] : []),
+        ]
+      })
+    }
+    return ranges.map((range) => ({ ...block, ...range }))
+  })
+  return [...modelBlocks, ...explicit].sort((left, right) => left.start - right.start)
+}
+
 function normalizeHeadingLevels(plan: LayoutPlan): LayoutPlan {
   const hasMultipleDocumentTitles = plan.blocks.filter((block) => block.type === 'heading' && block.level === 1).length > 1
   if (!hasMultipleDocumentTitles) return plan
@@ -294,7 +364,7 @@ function mergeAdjacentLists(sourceText: string, blocks: DocumentBlock[]) {
 
 export function buildDocumentFromPlan(sourceText: string, plan: LayoutPlan): LayoutDocument {
   const units = sourceUnits(sourceText)
-  const plannedRanges = [...normalizeHeadingLevels(plan).blocks].sort((left, right) => left.start - right.start)
+  const plannedRanges = applyExplicitStructures(units, plan)
   const blocks: DocumentBlock[] = []
   let cursor = 0
 
