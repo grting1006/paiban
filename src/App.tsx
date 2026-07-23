@@ -16,6 +16,7 @@ export default function App() {
   const [sourceText, setSourceText] = useState(sampleSourceText)
   const [layoutPhase, setLayoutPhase] = useState<LayoutPhase>('idle')
   const [isExporting, setIsExporting] = useState(false)
+  const [exportPageCount, setExportPageCount] = useState(1)
   const timers = useRef<number[]>([])
   const activeRequest = useRef<AbortController | null>(null)
   const paperRef = useRef<HTMLElement>(null)
@@ -42,6 +43,7 @@ export default function App() {
       const nextDocument = await requestLayout(sourceText, controller.signal)
       if (controller.signal.aborted) return
       setDocument(nextDocument)
+      setExportPageCount(1)
       setLayoutPhase('done')
       timers.current.push(window.setTimeout(() => setLayoutPhase('idle'), 1400))
     } catch {
@@ -55,7 +57,7 @@ export default function App() {
     if (isExporting || !paperRef.current) return
     setIsExporting(true)
     try {
-      await downloadPaperAsPdf(paperRef.current)
+      setExportPageCount(await downloadPaperAsPdf(paperRef.current))
     } finally {
       setIsExporting(false)
     }
@@ -79,7 +81,7 @@ export default function App() {
         <PreviewPanel document={document} settings={settings} phase={layoutPhase} paperRef={paperRef} onZoomChange={(zoom) => updateSettings({ zoom })} />
         <InspectorPanel settings={settings} onChange={updateSettings} />
       </main>
-      <StatusBar phase={layoutPhase} />
+      <StatusBar phase={layoutPhase} pageCount={exportPageCount} />
     </div>
   )
 }

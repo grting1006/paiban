@@ -82,7 +82,7 @@ test('sends the source to the layout service and renders the accepted document',
 })
 
 test('updates the accent locally and downloads the rendered paper as PDF', async () => {
-  const download = vi.spyOn(pdfExport, 'downloadPaperAsPdf').mockResolvedValue(undefined)
+  const download = vi.spyOn(pdfExport, 'downloadPaperAsPdf').mockResolvedValue(2)
   render(<App />)
 
   fireEvent.click(screen.getByRole('button', { name: '颜色 #df6c55' }))
@@ -93,6 +93,7 @@ test('updates the accent locally and downloads the rendered paper as PDF', async
   expect(await screen.findByRole('button', { name: '导出 PDF' })).toBeEnabled()
   expect(download).toHaveBeenCalledOnce()
   expect(download.mock.calls[0][0]).toHaveClass('paper')
+  expect(screen.getByRole('contentinfo')).toHaveTextContent('2 页')
   download.mockRestore()
 })
 
