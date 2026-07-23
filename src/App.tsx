@@ -78,7 +78,7 @@ export default function App() {
       />
       <main className="workbench__main">
         <SourcePanel value={sourceText} onChange={setSourceText} />
-        <PreviewPanel document={document} settings={settings} phase={layoutPhase} paperRef={paperRef} onZoomChange={(zoom) => updateSettings({ zoom })} />
+        <PreviewPanel document={document} settings={settings} phase={layoutPhase} paperRef={paperRef} onPageCountChange={setExportPageCount} onZoomChange={(zoom) => updateSettings({ zoom })} />
         <InspectorPanel settings={settings} onChange={updateSettings} />
       </main>
       <StatusBar phase={layoutPhase} pageCount={exportPageCount} />

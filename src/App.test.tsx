@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { expect, test, vi } from 'vitest'
 import App from './App'
+import { StatusBar } from './components/StatusBar'
 import { sampleDocument } from './content/sampleDocument'
 import { hasSourceFidelity, inlineSourceText } from './document/normalize'
 import * as pdfExport from './services/pdfExport'
@@ -93,8 +94,12 @@ test('updates the accent locally and downloads the rendered paper as PDF', async
   expect(await screen.findByRole('button', { name: '导出 PDF' })).toBeEnabled()
   expect(download).toHaveBeenCalledOnce()
   expect(download.mock.calls[0][0]).toHaveClass('paper')
-  expect(screen.getByRole('contentinfo')).toHaveTextContent('2 页')
   download.mockRestore()
+})
+
+test('shows the measured multipage count in the status bar', () => {
+  render(<StatusBar phase="idle" pageCount={8} />)
+  expect(screen.getByRole('contentinfo')).toHaveTextContent('8 页')
 })
 
 test('locks the approved desktop-only three-column layout', () => {

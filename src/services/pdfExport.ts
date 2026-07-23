@@ -53,6 +53,8 @@ export function paginateFlow(flowHeight: number, pageHeight: number, blocks: Flo
 
 function createExportSurface(element: HTMLElement) {
   const surface = element.cloneNode(true) as HTMLElement
+  const pageFlow = surface.querySelector('.paper__page-flow')
+  if (pageFlow) surface.replaceChildren(...Array.from(pageFlow.childNodes))
   const computed = getComputedStyle(element)
   for (const property of ['--accent', '--body-size', '--body-leading', '--indent-step']) {
     surface.style.setProperty(property, computed.getPropertyValue(property))
@@ -88,6 +90,16 @@ function measureFlow(surface: HTMLElement) {
   })
   const flowHeight = Math.max(surface.scrollHeight, blocks.at(-1)?.bottom ?? 0)
   return { blocks, flowHeight }
+}
+
+export function measurePaperPageSegments(element: HTMLElement) {
+  const surface = createExportSurface(element)
+  try {
+    const { blocks, flowHeight } = measureFlow(surface)
+    return paginateFlow(flowHeight, PAGE_CONTENT_HEIGHT_PX, blocks)
+  } finally {
+    surface.remove()
+  }
 }
 
 function drawFolio(context: CanvasRenderingContext2D, width: number, height: number, scale: number, pageNumber: number) {
